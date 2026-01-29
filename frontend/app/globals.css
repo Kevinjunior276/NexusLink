@@ -8,8 +8,8 @@
   --color-brand-secondary: #7928ca;
   --color-brand-text-dim: #888888;
 
-  --font-sans: var(--font-sans), 'Inter', sans-serif;
-  --font-display: var(--font-display), 'Outfit', sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-display: 'Outfit', 'Inter', sans-serif;
 
   --color-border: var(--color-brand-border);
   --color-background: var(--color-brand-bg);
@@ -20,20 +20,21 @@
   --animate-marquee: marquee 20s linear infinite;
   --animate-spin-slow: spin 8s linear infinite;
   --animate-float: float 6s ease-in-out infinite;
+}
 
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-20px); }
-  }
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
 
-  @keyframes fade-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 :root {
@@ -56,7 +57,7 @@
   }
 
   body {
-    background-color: var(--color-brand-bg);
+    background-color: #03040b;
     color: #ffffff;
     overflow-x: hidden;
   }
@@ -67,23 +68,22 @@
     position: fixed;
     inset: 0;
     z-index: 100;
-    background-color: var(--color-brand-bg);
+    background-color: #03040b;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 2rem;
     font-size: 1.5rem;
-    font-family: var(--font-display);
     font-weight: 700;
     animation: fade-in 0.5s ease-out forwards;
   }
 
   .glass-card {
-    background: var(--color-brand-card);
+    background: rgba(13, 14, 24, 0.7);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--color-brand-border);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     transition: all 0.5s cubic-bezier(0,0,0.2,1);
   }
 
@@ -137,13 +137,13 @@
 }
 
 .orb-blue {
-  background: var(--color-brand-primary);
+  background: #0070f3;
   top: -200px;
   right: -100px;
 }
 
 .orb-purple {
-  background: var(--color-brand-secondary);
+  background: #7928ca;
   bottom: -200px;
   left: -100px;
 }
