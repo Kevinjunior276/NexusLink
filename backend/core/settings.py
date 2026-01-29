@@ -10,7 +10,12 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-%q%*sxm7zc(#x5!cpj-xd
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*'] # In production, replace with your render domain
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'crytotrade-pro-r1gs.onrender.com',
+    '.onrender.com'
+]
 
 # Application definition
 INSTALLED_APPS = [
