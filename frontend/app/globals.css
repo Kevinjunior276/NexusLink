@@ -1,6 +1,8 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
+:root {
   /* Core brand colors */
   --color-brand-bg: #03040b;
   --color-brand-card: rgba(13, 14, 24, 0.7);
@@ -18,12 +20,8 @@
   --color-background: var(--color-brand-bg);
   --color-foreground: #ffffff;
 
-  /* Animations definitions for v4 */
-  --animate-fade-in: fade-in 0.5s ease-out forwards;
-  --animate-pulse-glow: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-float: float 6s ease-in-out infinite;
-  --animate-spin-slow: spin 8s linear infinite;
-  --animate-reveal: reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --background: #03040b;
+  --foreground: #ffffff;
 }
 
 @keyframes float {
@@ -44,11 +42,6 @@
 @keyframes reveal {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-:root {
-  --background: #03040b;
-  --foreground: #ffffff;
 }
 
 @layer base {
