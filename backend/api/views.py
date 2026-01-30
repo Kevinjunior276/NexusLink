@@ -22,10 +22,12 @@ class FormLinkViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def get_queryset(self):
-        if self.request.user.is_authenticated:
-            return self.queryset.filter(user=self.request.user).order_by('-created_at')
+        # Pour la visualisation publique d'un lien spécifique
         if self.action == 'retrieve':
             return self.queryset.all()
+        # Pour la liste dans le dashboard admin
+        if self.request.user.is_authenticated:
+            return self.queryset.filter(user=self.request.user).order_by('-created_at')
         return FormLink.objects.none()
 
     def create(self, request, *args, **kwargs):
