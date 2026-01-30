@@ -3,11 +3,14 @@ import uuid
 
 from django.contrib.auth.models import User
 
+def generate_link_id():
+    return str(uuid.uuid4())
+
 class FormLink(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='form_links', null=True)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    link_id = models.CharField(max_length=100, unique=True, default=uuid.uuid4)
+    link_id = models.CharField(max_length=100, unique=True, default=generate_link_id)
     expiry_date = models.DateTimeField(null=True, blank=True)
     submissions_limit = models.IntegerField(default=0)  # 0 for unlimited
     created_at = models.DateTimeField(auto_now_add=True)

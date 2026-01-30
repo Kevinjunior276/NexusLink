@@ -16,11 +16,25 @@ class FormLinkViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'link_id'
 
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return [permissions.AllowAny()]
+        return super().get_permissions()
+
     def get_queryset(self):
-        return self.queryset.filter(user=self.request.user).order_by('-created_at')
+        if self.request.user.is_authenticated:
+            return self.queryset.filter(user=self.request.user).order_by('-created_at')
+        if self.action == 'retrieve':
+            return self.queryset.all()
+        return FormLink.objects.none()
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        try:
+            serializer.save(user=self.request.user)
+            print(f"DEBUG: FormLink created successfully for user {self.request.user}")
+        except Exception as e:
+            print(f"ERROR creating FormLink: {str(e)}")
+            raise e
 
 class SubmissionViewSet(viewsets.ModelViewSet):
     queryset = Submission.objects.all().order_by('-created_at')

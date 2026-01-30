@@ -235,10 +235,14 @@ export default function ClientLinkPage() {
     useEffect(() => {
         const fetchLink = async () => {
             try {
-                const links = await api.get('/links/');
-                const current = links.find((l: any) => l.link_id === linkId);
-                if (current) setLinkInfo(current);
-            } catch (err) { console.error(err); } finally { setLoadingConfig(false); }
+                // Utiliser l'endpoint spécifique qui est maintenant public
+                const data = await api.get(`/links/${linkId}/`);
+                if (data) setLinkInfo(data);
+            } catch (err) {
+                console.error("Erreur lors de la récupération du lien:", err);
+            } finally {
+                setLoadingConfig(false);
+            }
         };
         fetchLink();
     }, [linkId]);
