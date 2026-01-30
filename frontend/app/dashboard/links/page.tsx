@@ -76,7 +76,7 @@ export default function AdminLinksPage() {
         } catch (error: any) {
             console.error('Error creating link:', error);
             const msg = error.message || "Impossible de créer le lien";
-            alert(`Erreur: ${msg}`);
+            alert(`Détail Error: ${msg}`);
         }
     };
 
