@@ -11,6 +11,7 @@ class FormLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = FormLink
         fields = '__all__'
+        read_only_fields = ['link_id', 'user']
 
 class SubmissionSerializer(serializers.ModelSerializer):
     class Meta:

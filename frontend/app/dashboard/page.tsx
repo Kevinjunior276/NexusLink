@@ -106,9 +106,10 @@ export default function DashboardPage() {
             setNewCampaign({ name: '', limit: '' });
             fetchData();
             setTimeout(() => setCopyStatus(null), 3000);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to create link:', err);
-            alert("Erreur lors de la création du lien. Veuillez réessayer.");
+            const msg = err.message || "Impossible de créer le lien";
+            alert(`Erreur: ${msg}`);
         } finally {
             setIsCreating(false);
         }
