@@ -173,26 +173,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
             </nav>
 
-            <div className="fixed top-20 left-0 right-0 h-14 bg-white/[0.02] border-b border-white/5 z-40 px-6 flex items-center justify-center lg:justify-start gap-4 overflow-x-auto no-scrollbar">
-                {adminMenuItems.map((item) => (
-                    <Link
-                        key={item.href}
-                        href={item.href}
-                        className={cn(
-                            "flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all",
-                            pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/dashboard')
-                                ? "bg-brand-primary/10 text-brand-primary"
-                                : "text-brand-text-dim hover:text-white"
-                        )}
-                    >
-                        <span>{item.label === 'Dashboard' ? '🏠' : item.label === 'Soumissions' ? '📋' : item.label === 'Liens' ? '🔗' : '⚙️'}</span>
-                        [{item.label}]
-                    </Link>
-                ))}
+            <div className="fixed top-20 left-0 right-0 h-16 bg-white/[0.03] border-b border-white/5 z-40 flex items-center overflow-hidden">
+                <div className="container mx-auto px-4 sm:px-10 h-full flex items-center justify-start lg:justify-start gap-2 sm:gap-6 overflow-x-auto no-scrollbar mask-fade-edges">
+                    {adminMenuItems.map((item) => (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className={cn(
+                                "flex items-center gap-1.5 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-[2px] sm:tracking-[4px] transition-all whitespace-nowrap italic border",
+                                pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/dashboard')
+                                    ? "bg-brand-primary/10 text-brand-primary border-brand-primary/20 shadow-[0_0_15px_rgba(0,112,243,0.1)]"
+                                    : "text-brand-text-dim hover:text-white border-transparent hover:bg-white/5"
+                            )}
+                        >
+                            <span className="text-xs sm:text-sm grayscale opacity-70 group-hover:grayscale-0 transition-all">{item.label === 'Dashboard' ? '🏠' : item.label === 'Soumissions' ? '📋' : item.label === 'Liens' ? '🔗' : '⚙️'}</span>
+                            <span className="hidden xs:inline">{item.label}</span>
+                            <span className="xs:hidden">{item.label.substring(0, 4)}.</span>
+                        </Link>
+                    ))}
+                </div>
             </div>
 
-            <main className="pt-34 h-screen overflow-hidden">
-                <div className="h-full overflow-y-auto px-6 lg:px-12 py-10 no-scrollbar">{children}</div>
+            <main className="pt-36 h-screen overflow-hidden">
+                <div className="h-full overflow-y-auto px-4 sm:px-10 py-8 no-scrollbar">{children}</div>
             </main>
         </div>
     );

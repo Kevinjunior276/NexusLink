@@ -3,15 +3,29 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import HeroChart from '@/components/charts/HeroChart';
+import {
+  ShieldCheck,
+  Zap,
+  Globe,
+  Lock,
+  BarChart2,
+  RefreshCw,
+  Cpu,
+  Layers,
+  ArrowRight,
+  TrendingUp,
+  Activity
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [prices, setPrices] = useState([
-    { s: 'BTC', p: 48512.4, c: 2.45 },
-    { s: 'ETH', p: 2614.9, c: -1.2 },
-    { s: 'SOL', p: 104.2, c: 5.7 },
-    { s: 'XRP', p: 0.54, c: 0.8 },
+    { s: 'BTC', p: 48512.4, c: 2.45, v: '1.2B' },
+    { s: 'ETH', p: 2614.9, c: -1.2, v: '850M' },
+    { s: 'SOL', p: 104.2, c: 5.7, v: '320M' },
+    { s: 'XRP', p: 0.54, c: 0.8, v: '150M' },
   ]);
 
   const [trades, setTrades] = useState([
@@ -43,10 +57,18 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
+  const scrollToSection = (id: string) => {
+    setMobileMenuOpen(false);
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   if (!mounted) return null;
 
   return (
-    <div className="relative min-h-screen selection:bg-brand-primary/30">
+    <div className="relative min-h-screen selection:bg-brand-primary/30 bg-[#020308]">
       {/* Navigation Responsive */}
       <nav className="fixed top-0 w-full z-[100] nav-blur border-b border-brand-border h-16 sm:h-20">
         <div className="container mx-auto h-full px-4 sm:px-6 flex items-center justify-between">
@@ -57,16 +79,16 @@ export default function HomePage() {
               </div>
               CTP <span className="opacity-40 font-normal">PRO</span>
             </Link>
-            <div className="hidden lg:flex gap-10 text-[12px] font-medium tracking-wide text-brand-text-dim uppercase">
-              <Link href="#" className="hover:text-white transition-all underline-offset-8 hover:underline">Marchés</Link>
-              <Link href="#" className="hover:text-white transition-all underline-offset-8 hover:underline">Liquidité</Link>
-              <Link href="#" className="hover:text-white transition-all underline-offset-8 hover:underline">Sécurité</Link>
+            <div className="hidden lg:flex gap-10 text-[10px] font-black tracking-widest text-brand-text-dim uppercase">
+              <button onClick={() => scrollToSection('markets')} className="hover:text-white transition-all underline-offset-8 hover:underline italic">Marchés</button>
+              <button onClick={() => scrollToSection('liquidity')} className="hover:text-white transition-all underline-offset-8 hover:underline italic">Liquidité</button>
+              <button onClick={() => scrollToSection('security')} className="hover:text-white transition-all underline-offset-8 hover:underline italic">Sécurité</button>
             </div>
           </div>
 
           <div className="flex items-center gap-4 sm:gap-8">
-            <Link href="/login" className="hidden sm:block text-[12px] font-bold hover:text-brand-primary transition-colors tracking-widest uppercase">Espace Admin</Link>
-            <Link href="/login" className="btn-premium py-1.5 sm:py-2 px-4 sm:px-8 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest whitespace-nowrap">Connexion</Link>
+            <Link href="/login" className="hidden sm:block text-[10px] font-black hover:text-brand-primary transition-colors tracking-widest uppercase italic">Espace Admin</Link>
+            <Link href="/login" className="btn-premium py-1.5 sm:py-2.5 px-6 sm:px-10 text-[9px] sm:text-[11px] font-black uppercase tracking-widest whitespace-nowrap italic">Connexion</Link>
 
             {/* Mobile Menu Toggle */}
             <button
@@ -82,115 +104,171 @@ export default function HomePage() {
       </nav>
 
       {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="mobile-menu-active lg:hidden">
-          <Link href="#" onClick={() => setMobileMenuOpen(false)} className="hover:text-brand-primary transition-colors">Marchés</Link>
-          <Link href="#" onClick={() => setMobileMenuOpen(false)} className="hover:text-brand-primary transition-colors">Liquidité</Link>
-          <Link href="#" onClick={() => setMobileMenuOpen(false)} className="hover:text-brand-primary transition-colors">Sécurité</Link>
-          <div className="h-px w-20 bg-brand-border my-4"></div>
-          <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="text-sm uppercase tracking-widest font-bold">Connexion</Link>
-        </div>
-      )}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            className="fixed inset-0 z-[100] bg-brand-bg flex flex-col items-center justify-center gap-10"
+          >
+            <button onClick={() => scrollToSection('markets')} className="text-xl font-black uppercase tracking-[4px] italic">Marchés</button>
+            <button onClick={() => scrollToSection('liquidity')} className="text-xl font-black uppercase tracking-[4px] italic">Liquidité</button>
+            <button onClick={() => scrollToSection('security')} className="text-xl font-black uppercase tracking-[4px] italic">Sécurité</button>
+            <div className="h-px w-20 bg-brand-border my-4"></div>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="text-sm font-black uppercase tracking-[4px] text-brand-primary italic">Se Connecter</Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Hero Section */}
       <main className="relative">
-        <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden pt-20 px-4">
+        <section className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden pt-20 px-4">
           <HeroChart />
 
           <div className="container mx-auto text-center max-w-5xl relative z-20">
-            <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border border-brand-primary/20 bg-brand-primary/5 text-[9px] sm:text-[10px] font-bold tracking-widest uppercase mb-8 sm:mb-12 animate-fade-in text-brand-primary">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-brand-primary/20 bg-brand-primary/5 text-[9px] sm:text-[10px] font-black tracking-[4px] uppercase mb-8 sm:mb-12 text-brand-primary italic"
+            >
               <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse shadow-[0_0_12px_rgba(0,112,243,1)]"></span>
-              Mainnet LIVE 2.0
-            </div>
+              Mainnet LIVE 2.0 (HFT Optimized)
+            </motion.div>
 
-            <h1 className="font-display text-4xl sm:text-6xl md:text-8xl lg:text-[110px] font-bold tracking-tighter leading-[1.0] sm:leading-[0.95] mb-6 sm:mb-10 animate-fade-in">
+            <h1 className="font-display text-4xl sm:text-6xl md:text-8xl lg:text-[110px] font-bold tracking-tighter leading-[1.0] sm:leading-[0.95] mb-6 sm:mb-10 animate-fade-in uppercase">
               Tradez sans <br />
-              <span className="text-glow underline decoration-brand-primary/30 decoration-4 sm:decoration-8 underline-offset-[-2px]">limites.</span>
+              <span className="text-glow italic underline decoration-brand-primary/30 decoration-4 sm:decoration-8 underline-offset-[-2px]">limites.</span>
             </h1>
 
-            <p className="text-brand-text-dim text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-10 sm:mb-16 font-medium leading-relaxed px-4">
-              La plateforme institutionnelle pour les actifs numériques. <br className="hidden md:block" />
-              Vitesse d&apos;exécution de <span className="text-white">sub-microseconde</span> garantie.
+            <p className="text-brand-text-dim text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-10 sm:mb-20 font-medium leading-relaxed px-4 opacity-80">
+              L&apos;infrastructure de trading pour les actifs numériques. <br className="hidden md:block" />
+              Algorithmes de liquidité profonde & vitesse <span className="text-white font-bold italic underline decoration-brand-primary underline-offset-4">milli-seconde</span>.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5 relative z-20 w-full sm:w-auto px-6">
-              <Link href="/login" className="btn-premium w-full sm:w-auto text-xs sm:text-sm px-8 sm:px-12 py-3 sm:py-4 shadow-2xl">
-                Accéder au Dashboard Admin
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 relative z-20 w-full sm:w-auto px-6">
+              <Link href="/login" className="btn-premium w-full sm:w-auto text-[11px] px-10 sm:px-14 py-4 sm:py-5 shadow-2xl font-black italic">
+                DÉMARRER MAINTENANT <ArrowRight className="inline-block ml-3 w-4 h-4" />
               </Link>
-              <Link href="#" className="group w-full sm:w-auto px-8 sm:px-10 py-3 sm:py-4 rounded-full border border-brand-border hover:border-brand-primary/50 transition-all text-xs sm:text-sm font-bold uppercase tracking-tighter bg-white/5 flex items-center justify-center gap-3">
-                Live Terminal
-                <span className="group-hover:translate-x-1 transition-transform">→</span>
-              </Link>
+              <button
+                onClick={() => scrollToSection('markets')}
+                className="group w-full sm:w-auto px-8 sm:px-12 py-4 sm:py-5 rounded-full border border-white/10 hover:border-brand-primary/40 transition-all text-[11px] font-black uppercase tracking-[3px] bg-white/[0.02] flex items-center justify-center gap-3 italic"
+              >
+                TERMINAL LIVE
+              </button>
             </div>
           </div>
 
-          {/* Scrolling Tickers - More compact on mobile */}
-          <div className="absolute bottom-0 w-full border-t border-brand-border py-4 sm:py-6 overflow-hidden bg-brand-bg/50 backdrop-blur-sm">
-            <div className="flex gap-8 sm:gap-12 whitespace-nowrap animate-[marquee_20s_linear_infinite]">
+          {/* Scrolling Tickers */}
+          <div className="absolute bottom-0 w-full border-t border-brand-border py-4 sm:py-6 overflow-hidden bg-brand-bg/50 backdrop-blur-sm z-30">
+            <div className="flex gap-12 sm:gap-20 whitespace-nowrap animate-[marquee_25s_linear_infinite]">
               {prices.concat(prices).map((crypto, i) => (
-                <div key={i} className="flex items-center gap-3 sm:gap-4 px-3 sm:px-4 border-r border-brand-border h-6 sm:h-8">
-                  <span className="text-[10px] sm:text-[12px] font-bold text-brand-text-dim uppercase tracking-widest">{crypto.s}</span>
-                  <span className="text-[11px] sm:text-[13px] font-display font-medium text-white">${crypto.p.toLocaleString()}</span>
-                  <span className={`text-[9px] sm:text-[11px] font-bold ${crypto.c >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {crypto.c >= 0 ? '▲' : '▼'} {Math.abs(crypto.c).toFixed(2)}%
+                <div key={i} className="flex items-center gap-5 sm:gap-6 px-4">
+                  <span className="text-[10px] sm:text-[11px] font-black text-brand-text-dim uppercase tracking-[4px]">{crypto.s}/USDT</span>
+                  <span className="text-[12px] sm:text-[14px] font-display font-bold text-white tracking-tight">${crypto.p.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className={cn("text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5", crypto.c >= 0 ? 'text-green-500' : 'text-red-500')}>
+                    {crypto.c >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <Activity className="w-3.5 h-3.5" />}
+                    {crypto.c >= 0 ? '+' : ''}{crypto.c.toFixed(2)}%
                   </span>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Responsive Dashboard Mockup */}
-        <section className="py-20 sm:py-32 px-4 sm:px-6 relative">
-          <div className="container mx-auto">
-            <div className="max-w-6xl mx-auto relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-brand-primary to-brand-secondary rounded-[24px] sm:rounded-[32px] blur opacity-25"></div>
-              <div className="relative glass-card border-white/10 rounded-[20px] sm:rounded-[28px] overflow-hidden shadow-2xl">
-                {/* Interface Header */}
-                <div className="h-8 sm:h-10 border-b border-white/5 bg-white/5 flex items-center px-4 sm:px-6 gap-2">
-                  <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500/50" />
-                  <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-yellow-500/50" />
-                  <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-green-500/50" />
-                  <div className="ml-4 text-[8px] sm:text-[10px] uppercase font-bold tracking-widest opacity-20 truncate">Trading Terminal | BTC/USDT</div>
-                </div>
-                {/* Interface Content - Stack on mobile */}
-                <div className="flex flex-col md:grid md:grid-cols-4 h-auto md:h-[500px]">
-                  <div className="col-span-3 border-b md:border-b-0 md:border-r border-white/5 bg-[#03040b] p-6 sm:p-8 relative min-h-[300px]">
-                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8 sm:mb-12">
+        {/* Section: RAW MARKETS */}
+        <section id="markets" className="py-24 sm:py-40 relative">
+          <div className="container mx-auto px-6">
+            <div className="max-w-4xl mx-auto text-center mb-20">
+              <h2 className="text-[10px] font-black uppercase tracking-[8px] text-brand-primary mb-6 italic">/// MARKET ACCESS</h2>
+              <h3 className="text-4xl sm:text-6xl font-display font-bold tracking-tight mb-8">Marchés en Temps Réel</h3>
+              <p className="text-brand-text-dim max-w-2xl mx-auto font-medium leading-relaxed italic opacity-60">Accédez aux carnets d&apos;ordres institutionnels et profitez d&apos;un spread minimal sur plus de 100 paires de trading.</p>
+            </div>
+
+            <div className="glass-card rounded-[40px] border-white/5 overflow-hidden shadow-2xl bg-[#03040b]/60">
+              <div className="grid grid-cols-5 bg-white/[0.03] border-b border-white/5 py-6 px-10 text-[10px] font-black uppercase tracking-[4px] text-brand-text-dim italic">
+                <div className="col-span-2">Actif</div>
+                <div className="text-center">Prix</div>
+                <div className="text-center">24h Change</div>
+                <div className="text-right">Volume</div>
+              </div>
+              <div className="divide-y divide-white/5">
+                {prices.map((crypto, i) => (
+                  <div key={i} className="grid grid-cols-5 py-8 px-10 hover:bg-white/[0.02] transition-colors items-center">
+                    <div className="col-span-2 flex items-center gap-6">
+                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-black text-xs">{crypto.s[0]}</div>
                       <div>
-                        <div className="text-2xl sm:text-3xl font-display font-medium text-white mb-1 tracking-tight">$48,512.24</div>
-                        <div className="text-green-400 text-xs font-bold">+2.45% (24h)</div>
-                      </div>
-                      <div className="flex gap-1.5 sm:gap-2 flex-wrap">
-                        {['1m', '5m', '1h', '4h', '1D', '1W'].map(t => (
-                          <span key={t} className={`px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold rounded-md ${t === '1h' ? 'bg-brand-primary text-white' : 'text-white/10'}`}>{t}</span>
-                        ))}
+                        <div className="font-bold text-lg tracking-tight uppercase">{crypto.s}</div>
+                        <div className="text-[9px] font-bold text-brand-text-dim tracking-widest uppercase">Digital Asset</div>
                       </div>
                     </div>
-                    {/* Simulated Graph Lines */}
-                    <div className="h-40 sm:h-full w-full opacity-10 absolute bottom-0 left-0">
-                      <svg width="100%" height="100%" viewBox="0 0 1000 300" preserveAspectRatio="none">
-                        <path d="M0 250 Q 150 200, 300 280 T 600 150 T 1000 250" fill="none" stroke="white" strokeWidth="2" />
-                      </svg>
+                    <div className="text-center font-display font-bold text-base tracking-tight">${crypto.p.toLocaleString()}</div>
+                    <div className={cn("text-center font-black text-xs tracking-widest uppercase italic", crypto.c >= 0 ? 'text-green-500' : 'text-red-500')}>
+                      {crypto.c >= 0 ? '+' : ''}{crypto.c.toFixed(2)}%
                     </div>
+                    <div className="text-right font-bold text-xs opacity-60 tracking-[2px]">{crypto.v}</div>
                   </div>
-                  {/* Realtime Action Bar - Scrollable on mobile */}
-                  <div className="p-4 sm:p-6 bg-white/[0.02]">
-                    <div className="text-[9px] sm:text-[10px] font-bold text-white/40 uppercase mb-4 sm:mb-6 tracking-widest">Derniers Trades</div>
-                    <div className="space-y-3 sm:space-y-4 max-h-[200px] md:max-h-none overflow-y-auto">
-                      {trades.map(trade => (
-                        <div key={trade.id} className="flex justify-between text-[10px] sm:text-[11px] font-medium">
-                          <span className={trade.type === 'buy' ? 'text-green-400' : 'text-red-400'}>{trade.price}</span>
-                          <span className="text-white opacity-40">{trade.amount}</span>
-                          <span className="text-brand-text-dim opacity-20 hidden sm:block">{trade.time}</span>
+                ))}
+              </div>
+              <div className="p-8 bg-white/[0.01] text-center">
+                <button className="text-[10px] font-black uppercase tracking-[6px] text-brand-primary hover:underline italic underline-offset-8">VOIR TOU LES MARCHÉS [+150]</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section: LIQUIDITY ENGINE */}
+        <section id="liquidity" className="py-24 sm:py-40 bg-gradient-to-b from-[#020308] to-brand-primary/5 relative overflow-hidden">
+          <div className="absolute top-1/2 left-0 w-full h-[1px] bg-brand-primary opacity-10" />
+          <div className="container mx-auto px-6 relative z-10">
+            <div className="flex flex-col lg:flex-row items-center gap-20">
+              <div className="flex-1 space-y-12">
+                <h2 className="text-[10px] font-black uppercase tracking-[8px] text-brand-primary italic">/// LIQUIDITY ENGINE</h2>
+                <h3 className="text-4xl sm:text-6xl font-display font-bold tracking-tight leading-[1.1]">Liquidité Profonde. Exécution Instantanée.</h3>
+                <p className="text-brand-text-dim text-lg leading-relaxed font-medium opacity-70 italic">Notre moteur d&apos;agrégation connecte les plus grands pools de liquidité mondiaux pour garantir que vos ordres, même les plus volumineux, soient exécutés sans glissement significatif.</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary"><Zap className="w-6 h-6" /></div>
+                    <h4 className="font-bold uppercase tracking-widest text-sm">Ultra-Low Latency</h4>
+                    <p className="text-xs text-brand-text-dim italic leading-loose">Moteur optimisé pour la microseconde, synchronisé avec les bourses mondiales.</p>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-secondary/10 flex items-center justify-center text-brand-secondary"><Layers className="w-6 h-6" /></div>
+                    <h4 className="font-bold uppercase tracking-widest text-sm">Smart Routing</h4>
+                    <p className="text-xs text-brand-text-dim italic leading-loose">Algorithme propriétaire de routage des ordres pour une efficience maximale.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 w-full max-w-2xl">
+                <div className="glass-card rounded-[40px] p-10 border-white/5 shadow-3xl bg-black relative">
+                  <div className="absolute -top-10 -right-10 w-20 h-20 bg-brand-primary rounded-full blur-[80px]" />
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center pb-6 border-b border-white/5">
+                      <span className="text-[11px] font-black uppercase tracking-widest text-brand-primary">Statut du Pool</span>
+                      <span className="flex items-center gap-2 text-[10px] font-bold text-green-500 uppercase"><span className="w-2 h-2 rounded-full bg-green-500 animate-ping"></span> Optimal</span>
+                    </div>
+                    <div className="space-y-4 pt-4">
+                      {[
+                        { l: 'Aggregation Nodes', v: '99/99', p: '100%' },
+                        { l: 'Depth Index', v: '$2B Tier 1', p: '94%' },
+                        { l: 'Gateway RTT', v: '0.12ms', p: '98%' },
+                      ].map((stat, i) => (
+                        <div key={i} className="space-y-2">
+                          <div className="flex justify-between text-[10px] font-black uppercase tracking-widest opacity-60">
+                            <span>{stat.l}</span>
+                            <span>{stat.v}</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              whileInView={{ width: stat.p }}
+                              className="h-full bg-brand-primary"
+                            />
+                          </div>
                         </div>
                       ))}
-                    </div>
-                    <div className="mt-8 sm:mt-12">
-                      <div className="flex gap-2">
-                        <div className="flex-1 bg-green-500/10 text-green-400 py-3 rounded-xl text-center text-[9px] sm:text-[10px] font-black uppercase">Acheter</div>
-                        <div className="flex-1 bg-red-500/10 text-red-500 py-3 rounded-xl text-center text-[9px] sm:text-[10px] font-black uppercase">Vendre</div>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -199,81 +277,80 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Responsive Stats */}
-        <section className="container mx-auto py-16 sm:py-24 px-4 sm:px-6">
-          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { l: 'Volume 24h', v: '$2.4B+' },
-              { l: 'Uptime', v: '99.999%' },
-              { l: 'Transactions', v: '50M+' },
-              { l: 'Sécurité', v: 'AES-256' },
-            ].map((s, i) => (
-              <div key={i} className="glass-card hover:bg-white/5 rounded-2xl p-6 sm:p-8 border-white/5">
-                <div className="text-3xl sm:text-4xl lg:text-5xl font-display font-medium mb-2 tracking-tighter text-glow-white whitespace-nowrap">{s.v}</div>
-                <div className="text-[9px] sm:text-[11px] font-bold text-brand-text-dim uppercase tracking-[2px] sm:tracking-[3px]">{s.l}</div>
+        {/* Section: SECURITY ZERO */}
+        <section id="security" className="py-24 sm:py-40 relative">
+          <div className="container mx-auto px-6">
+            <div className="glass-card rounded-[60px] p-16 sm:p-24 border-brand-primary/10 relative overflow-hidden flex flex-col items-center text-center">
+              <div className="absolute inset-0 bg-gradient-to-tr from-brand-primary/10 via-transparent to-brand-secondary/5" />
+              <div className="w-24 h-24 rounded-3xl bg-brand-primary/10 flex items-center justify-center text-brand-primary mb-12 shadow-inner border border-brand-primary/20"><ShieldCheck className="w-12 h-12" /></div>
+
+              <h2 className="text-[10px] font-black uppercase tracking-[10px] text-brand-primary mb-8 italic">/// PROTOCOLE SÉCURITÉ ZERO</h2>
+              <h3 className="text-4xl sm:text-7xl font-display font-bold tracking-tight mb-12 max-w-4xl">Vos actifs, sous protection maximale.</h3>
+
+              <p className="text-brand-text-dim text-xl max-w-3xl mb-20 font-medium leading-relaxed italic opacity-80">98% des actifs sont stockés hors ligne dans des coffres froids géographiquement distribués. Chaque transaction est protégée par un protocole multi-signature propriétaire.</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-12 w-full max-w-5xl">
+                {[
+                  { icon: Lock, t: 'Cold Storage', d: 'Retrait différé sécurisé.' },
+                  { icon: Cpu, t: 'MPC Architecture', d: 'Souveraineté des clés.' },
+                  { icon: Globe, t: 'Regulatory Compliance', d: 'Standard SOC2 Type II.' },
+                ].map((sec, i) => (
+                  <div key={i} className="flex flex-col items-center gap-6 p-10 rounded-[32px] bg-white/[0.02] border border-white/5 hover:border-brand-primary/20 transition-all hover:-translate-y-2">
+                    <sec.icon className="w-10 h-10 text-brand-primary" />
+                    <div className="space-y-2">
+                      <div className="font-bold uppercase tracking-widest text-sm italic">{sec.t}</div>
+                      <p className="text-[11px] text-brand-text-dim italic">{sec.d}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </section>
 
-        {/* Feature Grid - Responsive Stacking */}
-        <section className="container mx-auto px-4 sm:px-6 pb-20 sm:pb-32">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-brand-border border border-brand-border rounded-2xl sm:rounded-3xl overflow-hidden glass-card">
-            {[
-              { t: 'Moteur d&apos;exécution', d: 'Latence ultra-faible pour vos ordres critiques.', icon: '⚡' },
-              { t: 'Sécurisation Cold-Wallet', d: 'Protection institutionnelle de vos actifs.', icon: '🛡️' },
-              { t: 'Visualisation Avancée', d: 'Graphiques haute précision en temps réel.', icon: '📈' },
-              { t: 'API Développeur', d: 'Connectivité REST et Webhook haute fréquence.', icon: '📟' },
-            ].map((f, i) => (
-              <div key={i} className="bg-brand-bg p-8 sm:p-12 hover:bg-white/[0.02] transition-all group">
-                <span className="inline-block text-2xl sm:text-3xl mb-4 sm:mb-6 group-hover:scale-110 transition-transform">{f.icon}</span>
-                <h3 className="text-lg sm:text-xl font-display font-bold mb-2 sm:mb-4">{f.t}</h3>
-                <p className="text-brand-text-dim text-xs sm:text-sm leading-relaxed">{f.d}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-24 sm:py-40 px-6 text-center bg-gradient-to-b from-brand-bg via-brand-primary/5 to-brand-bg">
-          <div className="container mx-auto">
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-display font-bold mb-6 sm:mb-10 tracking-tight">Prêt pour l&apos;avant-garde ?</h2>
-            <Link href="/register" className="btn-premium px-10 sm:px-16 py-4 sm:py-6 text-sm sm:text-base inline-block">Rejoindre CryptoTrade Pro</Link>
-            <div className="mt-6 sm:mt-8 text-brand-text-dim text-xs sm:text-sm opacity-60 px-4">Rejoignez plus de 1M+ traders professionnels aujourd'hui.</div>
+        {/* Section: CTA Dashboard Preview */}
+        <section className="py-40 px-6 text-center relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-brand-primary/10 rounded-full blur-[160px] opacity-40" />
+          <div className="container mx-auto relative z-10">
+            <h2 className="text-4xl sm:text-7xl font-display font-bold mb-12 tracking-tighter uppercase italic">L&apos;Avant-Garde vous attend.</h2>
+            <Link href="/login" className="btn-premium px-16 sm:px-24 py-5 sm:py-8 text-sm sm:text-lg inline-block italic shadow-[0_30px_60px_-15px_rgba(0,112,243,0.5)]">DÉMARRER SUR CRYPTOTRADE PRO</Link>
+            <div className="mt-12 text-brand-text-dim text-xs font-black uppercase tracking-[5px] opacity-40 italic">Système audité par des tiers indépendants.</div>
           </div>
         </section>
       </main>
 
       {/* Responsive Footer */}
-      <footer className="border-t border-brand-border py-16 sm:py-20 px-4 sm:px-6 bg-brand-bg">
-        <div className="container mx-auto grid grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-12 mb-16 sm:mb-20">
-          <div className="col-span-2 lg:col-span-2">
-            <div className="font-display text-xl sm:text-2xl font-bold tracking-tighter mb-4 sm:mb-6">CTP PRO</div>
-            <p className="text-brand-text-dim text-xs sm:text-sm max-w-sm">La première infrastructure de trading de grade institutionnel accessible à tous. Sécurité, Vitesse, Liquidité.</p>
+      <footer className="border-t border-brand-border py-20 px-6 bg-[#020308] relative z-20">
+        <div className="container mx-auto grid grid-cols-1 lg:grid-cols-4 gap-16 mb-24">
+          <div className="col-span-2 space-y-8">
+            <div className="font-display text-3xl font-bold tracking-tighter italic">CTP PRO <span className="text-brand-primary">.</span></div>
+            <p className="text-brand-text-dim text-sm max-w-sm leading-relaxed italic">L&apos;infrastructure de trading institutionnelle distribuée. Maximisation de la liquidité et sécurité sans compromis.</p>
+            <div className="flex gap-10 text-[10px] font-black uppercase tracking-widest opacity-40">
+              <Link href="#" className="hover:text-brand-primary transition-all">Twitter / X</Link>
+              <Link href="#" className="hover:text-brand-primary transition-all">LinkedIn</Link>
+              <Link href="#" className="hover:text-brand-primary transition-all">Telegram</Link>
+            </div>
           </div>
-          <div className="col-span-1">
-            <h4 className="text-[10px] uppercase font-bold tracking-widest text-white mb-4 sm:mb-6">Plateforme</h4>
-            <ul className="space-y-3 sm:space-y-4 text-brand-text-dim text-[11px] sm:text-[13px]">
-              <li><Link href="#" className="hover:text-white transition-colors">Documentation API</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Terminal</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Frais</Link></li>
+          <div className="space-y-10">
+            <h4 className="text-[11px] uppercase font-black tracking-[4px] text-white italic">Plateforme</h4>
+            <ul className="space-y-5 text-brand-text-dim text-[12px] font-bold italic">
+              <li><button onClick={() => scrollToSection('markets')} className="hover:text-white transition-colors underline-offset-4 hover:underline">Marchés</button></li>
+              <li><button onClick={() => scrollToSection('liquidity')} className="hover:text-white transition-colors underline-offset-4 hover:underline">Liquidité</button></li>
+              <li><button onClick={() => scrollToSection('security')} className="hover:text-white transition-colors underline-offset-4 hover:underline">Sécurité</button></li>
             </ul>
           </div>
-          <div className="col-span-1">
-            <h4 className="text-[10px] uppercase font-bold tracking-widest text-white mb-4 sm:mb-6">Compagnie</h4>
-            <ul className="space-y-3 sm:space-y-4 text-brand-text-dim text-[11px] sm:text-[13px]">
-              <li><Link href="#" className="hover:text-white transition-colors">À Propos</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Légal</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Media</Link></li>
+          <div className="space-y-10">
+            <h4 className="text-[11px] uppercase font-black tracking-[4px] text-white italic">Documents</h4>
+            <ul className="space-y-5 text-brand-text-dim text-[12px] font-bold italic">
+              <li><Link href="#" className="hover:text-white transition-colors underline-offset-4 hover:underline">API Docs</Link></li>
+              <li><Link href="#" className="hover:text-white transition-colors underline-offset-4 hover:underline">Legal</Link></li>
+              <li><Link href="#" className="hover:text-white transition-colors underline-offset-4 hover:underline">Support</Link></li>
             </ul>
           </div>
         </div>
-        <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-6 opacity-40 text-[9px] sm:text-[11px] font-bold tracking-widest uppercase border-t border-white/5 pt-10 text-center sm:text-left">
-          <div>© 2026 CTP PRO | ALL SYSTEMS OPERATIONAL</div>
-          <div className="flex gap-6 sm:gap-8">
-            <Link href="#" className="hover:text-brand-primary transition-colors">X / Twitter</Link>
-            <Link href="#" className="hover:text-brand-primary transition-colors">LinkedIn</Link>
-          </div>
+        <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-8 opacity-30 text-[10px] font-black tracking-[5px] uppercase border-t border-white/5 pt-12 text-center pointer-events-none italic">
+          <div>© 2026 CTP PRO | BUILT FOR HIGH FREQUENCY TRADING</div>
+          <div>EST. 14:23:01 UTC</div>
         </div>
       </footer>
     </div>

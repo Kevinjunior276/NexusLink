@@ -44,6 +44,16 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes scan {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.1; transform: scale(1); }
+  50% { opacity: 0.2; transform: scale(1.1); }
+}
+
 @layer base {
   * {
     border-color: var(--color-brand-border);
@@ -141,6 +151,10 @@
     font-family: var(--font-display);
     animation: fade-in 0.4s ease-out;
   }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 8s ease-in-out infinite;
+  }
 }
 
 /* Scrollbar Enhancement */
@@ -169,6 +183,11 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.mask-fade-edges {
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
 }
 
 /* Background Visual Effects */
