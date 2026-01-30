@@ -173,29 +173,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
             </nav>
 
-            <div className="fixed top-20 left-0 right-0 h-16 bg-white/[0.03] border-b border-white/5 z-40 flex items-center overflow-hidden">
-                <div className="container mx-auto px-4 sm:px-10 h-full flex items-center justify-start lg:justify-start gap-2 sm:gap-6 overflow-x-auto no-scrollbar mask-fade-edges">
+            {/* Desktop Side Nav Bar (Secondary) */}
+            <div className="hidden lg:flex fixed top-20 left-0 right-0 h-16 bg-white/[0.03] border-b border-white/5 z-40 items-center overflow-hidden">
+                <div className="container mx-auto px-10 h-full flex items-center justify-start gap-6">
                     {adminMenuItems.map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                "flex items-center gap-1.5 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-[2px] sm:tracking-[4px] transition-all whitespace-nowrap italic border",
+                                "flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-[4px] transition-all whitespace-nowrap italic border",
                                 pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/dashboard')
                                     ? "bg-brand-primary/10 text-brand-primary border-brand-primary/20 shadow-[0_0_15px_rgba(0,112,243,0.1)]"
                                     : "text-brand-text-dim hover:text-white border-transparent hover:bg-white/5"
                             )}
                         >
-                            <span className="text-xs sm:text-sm grayscale opacity-70 group-hover:grayscale-0 transition-all">{item.label === 'Dashboard' ? '🏠' : item.label === 'Soumissions' ? '📋' : item.label === 'Liens' ? '🔗' : '⚙️'}</span>
-                            <span className="hidden xs:inline">{item.label}</span>
-                            <span className="xs:hidden">{item.label.substring(0, 4)}.</span>
+                            <span className="text-sm grayscale opacity-70">{item.label === 'Dashboard' ? '🏠' : item.label === 'Soumissions' ? '📋' : item.label === 'Liens' ? '🔗' : '⚙️'}</span>
+                            <span>{item.label}</span>
                         </Link>
                     ))}
                 </div>
             </div>
 
-            <main className="pt-36 h-screen overflow-hidden">
-                <div className="h-full overflow-y-auto px-4 sm:px-10 py-8 no-scrollbar">{children}</div>
+            {/* Mobile Bottom Navigation Bar */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-brand-bg/80 backdrop-blur-2xl border-t border-white/5 z-50 px-4 flex items-center justify-around shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+                {adminMenuItems.map((item) => {
+                    const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/dashboard');
+                    const Icon = item.icon;
+                    return (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className={cn(
+                                "flex flex-col items-center gap-1.5 transition-all",
+                                isActive ? "text-brand-primary" : "text-brand-text-dim"
+                            )}
+                        >
+                            <div className={cn(
+                                "p-2 rounded-xl transition-all",
+                                isActive ? "bg-brand-primary/10 scale-110" : ""
+                            )}>
+                                <Icon className="w-6 h-6" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest">{item.label.substring(0, 5)}</span>
+                        </Link>
+                    );
+                })}
+            </div>
+
+            <main className="pt-24 lg:pt-36 pb-24 lg:pb-0 h-screen overflow-hidden">
+                <div className="h-full overflow-y-auto px-4 lg:px-10 py-8 no-scrollbar">{children}</div>
             </main>
         </div>
     );
