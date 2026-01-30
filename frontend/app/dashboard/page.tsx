@@ -82,21 +82,33 @@ export default function DashboardPage() {
     }, []);
 
     const handleCreateLink = async () => {
-        if (!newCampaign.name) return;
+        if (!newCampaign.name.trim()) return;
         setIsCreating(true);
         try {
+            const limitVal = parseInt(newCampaign.limit);
             const res = await api.post('/links/', {
-                name: newCampaign.name,
-                submissions_limit: parseInt(newCampaign.limit) || 0
+                name: newCampaign.name.trim(),
+                submissions_limit: isNaN(limitVal) ? 0 : limitVal
             });
-            const fullUrl = `${window.location.origin}/form/${res.link_id}`;
-            await navigator.clipboard.writeText(fullUrl);
-            setCopyStatus(res.link_id);
+
+            // Generate the link
+            const linkId = res.link_id || res.id; // Fallback if link_id isn't returned directly
+            const fullUrl = `${window.location.origin}/form/${linkId}`;
+
+            // Try to copy to clipboard
+            try {
+                await navigator.clipboard.writeText(fullUrl);
+            } catch (clipErr) {
+                console.warn('Clipboard access denied, link created but not copied automatically.');
+            }
+
+            setCopyStatus(linkId);
             setNewCampaign({ name: '', limit: '' });
             fetchData();
             setTimeout(() => setCopyStatus(null), 3000);
         } catch (err) {
-            console.error('Failed to create link');
+            console.error('Failed to create link:', err);
+            alert("Erreur lors de la création du lien. Veuillez réessayer.");
         } finally {
             setIsCreating(false);
         }
