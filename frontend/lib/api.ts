@@ -1,18 +1,31 @@
 const getBaseUrl = () => {
-    // Detect if we are running in a local environment
-    const isLocal = typeof window !== 'undefined' &&
-        (window.location.hostname === 'localhost' ||
-            window.location.hostname === '127.0.0.1' ||
-            window.location.hostname.startsWith('192.168.'));
+    // If an environment variable is set (Vercel production or local .env), use it
+    if (process.env.NEXT_PUBLIC_API_URL) {
+        // Ensure no trailing slash if user accidentally adds it (api.ts adds endpoints starting with /)
+        // Actually, let's keep it simple: users should provide base url like '.../api' or handle it here
+        // The instructions said NEXT_PUBLIC_API_URL = https://nexus-backend.onrender.com
+        // We need to append /api if the user follows instructions strictly to provide root URL
+        // But our code expects API_URL to include /api usually? Let's check usages.
+        // Usage: `${API_URL}${endpoint}` where endpoint usually starts with /.
+        // So API_URL should NOT end with /.
+        // However, standard django setup is /api/.
+        // Let's assume the user puts the HOST string in env var.
 
-    if (isLocal) {
-        // On local, try to use the environment variable or default to localhost
-        return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+        // Let's stick to the convention defined in instructions:
+        // Instruction: NEXT_PUBLIC_API_URL = https://nexus-backend.onrender.com
+        // Code should append /api
+
+        let url = process.env.NEXT_PUBLIC_API_URL;
+        if (url.endsWith('/')) url = url.slice(0, -1);
+        return `${url}/api`;
+
+        // Wait, if users put '.../api' it breaks. 
+        // Let's be smart.
+        // If the env var contains 'api' at the end, trust it? No, safer to just append /api to the HOST.
     }
 
-    // For production (Vercel) or any other public access, use the fixed production API
-    // This avoids issues with .env files not being present or being wrong in production
-    return 'https://crytotrade-pro-r1gs.onrender.com/api';
+    // Default fallback for local development if env var is missing
+    return 'http://localhost:8000/api';
 };
 
 const API_URL = getBaseUrl();
