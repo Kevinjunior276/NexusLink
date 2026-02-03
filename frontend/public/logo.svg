@@ -1,0 +1,6 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Augmentation de la taille du carré bleu pour occuper plus d'espace dans le canvas 512x512 -->
+  <rect x="30" y="30" width="452" height="452" rx="60" fill="#0070f3" transform="rotate(12 256 256)"/>
+  <!-- Augmentation de la taille du symbole B -->
+  <text x="256" y="278" font-family="Arial" font-size="300" font-weight="900" fill="white" text-anchor="middle" dominant-baseline="middle" transform="rotate(0 256 256)">₿</text>
+</svg>

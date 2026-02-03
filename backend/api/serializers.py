@@ -8,10 +8,15 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email']
 
 class FormLinkSerializer(serializers.ModelSerializer):
+    submission_count = serializers.SerializerMethodField()
+
     class Meta:
         model = FormLink
         fields = '__all__'
         read_only_fields = ['link_id', 'user']
+
+    def get_submission_count(self, obj):
+        return Submission.objects.filter(link_id=obj.link_id).count()
 
 class SubmissionSerializer(serializers.ModelSerializer):
     class Meta:

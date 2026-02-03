@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, Mail, ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
+import { Lock, Mail, ShieldCheck, ArrowRight, AlertCircle, User } from 'lucide-react';
 import { api } from '@/lib/api';
 
 export default function LoginPage() {
@@ -51,8 +51,8 @@ export default function LoginPage() {
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 mb-6 group transition-all hover:scale-110">
                         <Lock className="w-8 h-8 text-brand-primary group-hover:rotate-12 transition-transform" />
                     </div>
-                    <h2 className="text-[10px] font-black uppercase tracking-[4px] text-brand-primary mb-2">🔐 ADMIN ACCESS ONLY (DJANGO)</h2>
-                    <h1 className="font-display text-3xl font-bold tracking-tight text-white uppercase italic">CryptoTrade Pro</h1>
+                    <h2 className="text-[10px] font-black uppercase tracking-[4px] text-brand-primary mb-2">🔐 ACCÈS ADMINISTRATEUR SÉCURISÉ</h2>
+                    <h1 className="font-display text-3xl font-bold tracking-tight text-white uppercase italic">NexusLink Solutions</h1>
                 </div>
 
                 <article className="glass-card rounded-[32px] p-10 border-white/5 bg-white/[0.01]">
@@ -66,9 +66,9 @@ export default function LoginPage() {
 
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-[11px] font-bold text-brand-text-dim uppercase tracking-widest ml-1">Username Admin</label>
+                                <label className="text-[11px] font-bold text-brand-text-dim uppercase tracking-widest ml-1">Nom d'utilisateur ou Email</label>
                                 <div className="relative">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-text-dim" />
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-text-dim" />
                                     <input
                                         type="text"
                                         required
@@ -115,7 +115,7 @@ export default function LoginPage() {
 
                 <div className="mt-8 flex items-center justify-center gap-3 text-brand-text-dim opacity-40">
                     <ShieldCheck className="w-4 h-4" />
-                    <span className="text-[10px] font-bold uppercase tracking-[2px]">🛡️ Backend Python/Django Active</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[2px]">🛡️ Système de Sécurité Actif</span>
                 </div>
             </div>
         </div>

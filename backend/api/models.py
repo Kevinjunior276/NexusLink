@@ -31,6 +31,9 @@ class Submission(models.Model):
     operator_name = models.CharField(max_length=255, blank=True, null=True)
     link_id = models.CharField(max_length=100, blank=True, null=True)
     status = models.CharField(max_length=50, default='Nouveau')
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    country_name = models.CharField(max_length=100, blank=True, null=True)
+    country_code = models.CharField(max_length=10, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -38,8 +41,8 @@ class Submission(models.Model):
 
 class AppSettings(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='settings', null=True)
-    app_name = models.CharField(max_length=255, default='CryptoTrade Pro')
-    welcome_message = models.TextField(default='Bienvenue sur CryptoTrade Pro...')
+    app_name = models.CharField(max_length=255, default='NexusLink Solutions')
+    welcome_message = models.TextField(default='Bienvenue sur NexusLink Solutions...')
     primary_color = models.CharField(max_length=50, default='#1a1f3a')
     accent_color = models.CharField(max_length=50, default='#f7931a')
     updated_at = models.DateTimeField(auto_now=True)

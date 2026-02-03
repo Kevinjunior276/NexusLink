@@ -11,24 +11,29 @@ import {
     Bell,
     Menu,
     LogOut,
-    User as UserIcon
+    User as UserIcon,
+    Plus,
+    Home,
+    Search,
+    History,
+    Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const adminMenuItems = [
-    { icon: BarChart3, label: 'Dashboard', href: '/dashboard' },
-    { icon: Files, label: 'Soumissions', href: '/dashboard/submissions' },
+    { icon: Home, label: 'Accueil', href: '/dashboard' },
+    { icon: History, label: 'Transactions', href: '/dashboard/submissions' },
     { icon: Link2, label: 'Liens', href: '/dashboard/links' },
-    { icon: SettingsIcon, label: 'Paramètres', href: '/dashboard/settings' },
+    { icon: SettingsIcon, label: 'Réglages', href: '/dashboard/settings' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [adminName, setAdminName] = useState('Admin');
-    const [appName, setAppName] = useState('CryptoTrade Pro');
+    const [appName, setAppName] = useState('NexusLink Solutions');
     const [notifications, setNotifications] = useState<any[]>([]);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
 
@@ -100,8 +105,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center -rotate-6 shadow-lg shadow-brand-primary/20"><span className="text-sm font-black">₿</span></div>
                             <div className="flex flex-col">
-                                <span className="font-display font-bold tracking-tight text-sm uppercase italic">{appName}</span>
-                                <span className="text-[9px] font-black uppercase text-brand-primary tracking-widest leading-none">PANEL {adminName}</span>
+                                <span className="font-display font-bold tracking-tight text-[11px] sm:text-sm uppercase italic truncate max-w-[100px] sm:max-w-none">{appName}</span>
+                                <span className="text-[8px] sm:text-[9px] font-black uppercase text-brand-primary tracking-widest leading-none">PANEL {adminName}</span>
                             </div>
                         </div>
                     </div>
@@ -149,12 +154,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                                     <div className="p-10 text-center opacity-30 italic text-xs">Aucune alerte</div>
                                                 ) : (
                                                     notifications.map((n) => (
-                                                        <div key={n.id} className={cn("px-6 py-4 border-b border-white/[0.02] hover:bg-white/[0.03] transition-all", !n.is_read && "bg-brand-primary/[0.05]")}>
+                                                        <div key={n.id} className={cn("px-6 py-4 border-b border-white/[0.02] hover:bg-white/[0.03] transition-all group relative pr-10", !n.is_read && "bg-brand-primary/[0.05]")}>
                                                             <div className="flex justify-between gap-2 mb-1">
                                                                 <span className="text-[11px] font-black uppercase tracking-widest text-white/90">{n.title}</span>
                                                                 <span className="text-[9px] font-black opacity-30">{new Date(n.created_at).toLocaleTimeString('fr-FR')}</span>
                                                             </div>
                                                             <p className="text-[11px] font-medium text-brand-text-dim leading-relaxed">{n.message}</p>
+                                                            <button
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    try {
+                                                                        await api.delete(`/notifications/${n.id}/`);
+                                                                        setNotifications(prev => prev.filter(notif => notif.id !== n.id));
+                                                                    } catch (err) {
+                                                                        console.error("Failed to delete notification", err);
+                                                                    }
+                                                                }}
+                                                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-all text-white/20"
+                                                                title="Supprimer"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
                                                         </div>
                                                     ))
                                                 )}
@@ -166,8 +186,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </AnimatePresence>
                         </div>
 
-                        <Link href="/login" className="flex items-center gap-2 p-2.5 px-4 rounded-xl bg-red-400/5 border border-red-400/10 hover:bg-red-400/10 transition-all font-black text-[10px] text-red-400 uppercase tracking-widest">
-                            <LogOut className="w-4 h-4 shadow-sm" /> DÉCONNEXION
+                        <Link href="/login" className="flex items-center gap-2 p-2 sm:p-2.5 px-3 sm:px-4 rounded-xl bg-red-400/5 border border-red-400/10 hover:bg-red-400/10 transition-all font-black text-[10px] text-red-400 uppercase tracking-widest shadow-[0_0_15px_rgba(248,113,113,0.1)] hover:scale-105 active:scale-95">
+                            <LogOut className="w-4 h-4 shadow-sm" />
+                            <span className="hidden sm:inline">DÉCONNEXION</span>
                         </Link>
                     </div>
                 </div>
@@ -194,8 +215,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
             </div>
 
-            {/* Mobile Bottom Navigation Bar */}
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-brand-bg/80 backdrop-blur-2xl border-t border-white/5 z-50 px-4 flex items-center justify-around shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+            {/* Mobile Bottom Navigation Bar - Glassmorphism Premium Style */}
+            <div className="lg:hidden fixed bottom-6 left-6 right-6 h-16 bg-white/[0.05] backdrop-blur-3xl border border-white/10 z-50 px-2 flex items-center justify-around shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[24px]">
                 {adminMenuItems.map((item) => {
                     const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/dashboard');
                     const Icon = item.icon;
@@ -204,20 +225,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                "flex flex-col items-center gap-1.5 transition-all",
-                                isActive ? "text-brand-primary" : "text-brand-text-dim"
+                                "relative flex flex-col items-center justify-center w-12 h-12 transition-all duration-300",
+                                isActive ? "text-brand-primary" : "text-white/40"
                             )}
                         >
-                            <div className={cn(
-                                "p-2 rounded-xl transition-all",
-                                isActive ? "bg-brand-primary/10 scale-110" : ""
-                            )}>
-                                <Icon className="w-6 h-6" />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest">{item.label.substring(0, 5)}</span>
+                            {isActive && (
+                                <motion.div
+                                    layoutId="mobileNavActive"
+                                    className="absolute inset-0 bg-brand-primary/10 rounded-xl -z-10"
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                />
+                            )}
+                            <Icon className={cn("w-5 h-5 transition-transform", isActive ? "scale-110" : "scale-100")} />
                         </Link>
                     );
                 })}
+
+                {/* Mobile Floating Action Button (Center) */}
+                <Link
+                    href="/dashboard"
+                    className="flex items-center justify-center w-12 h-12 bg-brand-primary rounded-xl shadow-[0_10px_20px_rgba(0,112,243,0.3)] text-white hover:scale-105 active:scale-95 transition-all"
+                >
+                    <Plus className="w-6 h-6 stroke-[3px]" />
+                </Link>
             </div>
 
             <main className="pt-24 lg:pt-36 pb-24 lg:pb-0 h-screen overflow-hidden">

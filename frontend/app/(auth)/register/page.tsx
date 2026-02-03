@@ -66,7 +66,7 @@ export default function RegisterPage() {
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 mb-6 group transition-all hover:scale-110">
                         <UserIcon className="w-8 h-8 text-brand-primary group-hover:rotate-12 transition-transform" />
                     </div>
-                    <h2 className="text-[10px] font-black uppercase tracking-[4px] text-brand-primary mb-2">💎 INITIALIZE ADMIN ACCOUNT (DJANGO)</h2>
+                    <h2 className="text-[10px] font-black uppercase tracking-[4px] text-brand-primary mb-2">💎 INITIALISATION DU COMPTE ADMIN</h2>
                     <h1 className="font-display text-3xl font-bold tracking-tight text-white uppercase italic">Créer un Compte</h1>
                 </div>
 
@@ -104,7 +104,7 @@ export default function RegisterPage() {
                                     type="email"
                                     value={formData.email}
                                     onChange={handleChange}
-                                    placeholder="admin@cryptotradepro.com"
+                                    placeholder="admin@nexuslink.pro"
                                     className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 pl-12 text-sm focus:outline-none focus:border-brand-primary/50 transition-all text-white shadow-inner"
                                 />
                             </div>
@@ -162,7 +162,7 @@ export default function RegisterPage() {
 
                 <div className="mt-8 flex items-center justify-center gap-3 text-brand-text-dim opacity-40">
                     <ShieldCheck className="w-4 h-4" />
-                    <span className="text-[10px] font-bold uppercase tracking-[2px]">🛡️ Inscription sécurisée SSL (API Python)</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[2px]">🛡️ Inscription sécurisée par protocole SSL</span>
                 </div>
             </div>
         </div>
