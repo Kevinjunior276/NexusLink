@@ -102,7 +102,8 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     'https://nexus-link-backend.onrender.com',
     'https://crytotrade-pro.vercel.app',
-    'https://crytotrade-pro23.vercel.app'
+    'https://crytotrade-pro23.vercel.app',
+    'https://nexus-link-tau.vercel.app'
 ]
 
 REST_FRAMEWORK = {
