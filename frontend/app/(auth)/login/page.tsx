@@ -36,7 +36,11 @@ export default function LoginPage() {
                 setError('Échec de la connexion. Token non reçu.');
             }
         } catch (err: any) {
-            setError('Email ou mot de passe incorrect.');
+            let msg = err.message || 'Email ou mot de passe incorrect.';
+            if (msg.includes('redémarre peut-être') || msg.includes('met trop de temps')) {
+                msg = "⚠️ Le serveur redémarre (Cold Start). Veuillez patienter 1 minute et réessayer.";
+            }
+            setError(msg);
             console.error(err);
         } finally {
             setLoading(false);
