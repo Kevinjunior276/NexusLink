@@ -1,30 +1,13 @@
 const getBaseUrl = () => {
-    // If an environment variable is set (Vercel production or local .env), use it
     if (process.env.NEXT_PUBLIC_API_URL) {
-        // Ensure no trailing slash if user accidentally adds it (api.ts adds endpoints starting with /)
-        // Actually, let's keep it simple: users should provide base url like '.../api' or handle it here
-        // The instructions said NEXT_PUBLIC_API_URL = https://nexus-backend.onrender.com
-        // We need to append /api if the user follows instructions strictly to provide root URL
-        // But our code expects API_URL to include /api usually? Let's check usages.
-        // Usage: `${API_URL}${endpoint}` where endpoint usually starts with /.
-        // So API_URL should NOT end with /.
-        // However, standard django setup is /api/.
-        // Let's assume the user puts the HOST string in env var.
-
-        // Let's stick to the convention defined in instructions:
-        // Instruction: NEXT_PUBLIC_API_URL = https://nexus-backend.onrender.com
-        // Code should append /api
-
-        let url = process.env.NEXT_PUBLIC_API_URL;
+        let url = process.env.NEXT_PUBLIC_API_URL.trim();
         if (url.endsWith('/')) url = url.slice(0, -1);
+
+        // If the user already included '/api' in the URL, don't duplicate it
+        if (url.endsWith('/api')) return url;
+
         return `${url}/api`;
-
-        // Wait, if users put '.../api' it breaks. 
-        // Let's be smart.
-        // If the env var contains 'api' at the end, trust it? No, safer to just append /api to the HOST.
     }
-
-    // Default fallback for local development if env var is missing
     return 'http://localhost:8000/api';
 };
 
@@ -78,22 +61,32 @@ const handleResponse = async (response: Response) => {
 };
 
 export const api = {
-    async post(endpoint: string, data: any) {
+    async post(endpoint: string, data: any, retries = 3) {
         console.log(`POST request to ${endpoint}`, data);
-        try {
-            const response = await fetch(`${API_URL}${endpoint}`, {
-                method: 'POST',
-                headers: getHeaders(endpoint),
-                body: JSON.stringify(data),
-            });
-            console.log(`Response status: ${response.status}`);
-            return handleResponse(response);
-        } catch (err: any) {
-            console.error('Fetch error:', err);
-            if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-                throw new Error(`Impossible de contacter le serveur à ${API_URL}${endpoint}. Vérifiez votre connexion.`);
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: getHeaders(endpoint),
+                    body: JSON.stringify(data),
+                });
+                console.log(`Response status: ${response.status}`);
+                return await handleResponse(response);
+            } catch (err: any) {
+                const isNetworkError = err.message === 'Failed to fetch' || err.name === 'TypeError' || err.name === 'AbortError';
+                if (isNetworkError && i < retries - 1) {
+                    console.log(`Retry ${i + 1}/${retries} for ${endpoint}...`);
+                    await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1))); // Delay increases: 2s, 4s
+                    continue;
+                }
+
+                console.error('Fetch error:', err);
+                throw new Error(
+                    `Impossible de contacter le serveur. \n\n` +
+                    `Le serveur est probablement en train de démarrer (Cold Start). \n` +
+                    `Réessayez dans un instant.`
+                );
             }
-            throw err;
         }
     },
 
@@ -103,14 +96,25 @@ export const api = {
             headers: getHeaders(endpoint),
             body: JSON.stringify(data),
         });
-        return handleResponse(response);
+        return await handleResponse(response);
     },
 
-    async get(endpoint: string) {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            headers: getHeaders(endpoint),
-        });
-        return handleResponse(response);
+    async get(endpoint: string, retries = 3) {
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    headers: getHeaders(endpoint),
+                });
+                return await handleResponse(response);
+            } catch (err: any) {
+                const isNetworkError = err.message === 'Failed to fetch' || err.name === 'TypeError' || err.name === 'AbortError';
+                if (isNetworkError && i < retries - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+                    continue;
+                }
+                throw err;
+            }
+        }
     },
 
     async delete(endpoint: string) {
@@ -118,7 +122,7 @@ export const api = {
             method: 'DELETE',
             headers: getHeaders(endpoint),
         });
-        if (!response.ok) return handleResponse(response);
+        if (!response.ok) return await handleResponse(response);
         return response.status === 204 ? null : response.json();
     }
 };

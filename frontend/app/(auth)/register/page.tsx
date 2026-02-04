@@ -43,7 +43,11 @@ export default function RegisterPage() {
                 setError('Échec de la création du compte.');
             }
         } catch (err: any) {
-            setError(err.message || 'Une erreur est survenue lors de l\'inscription.');
+            let msg = err.message || 'Une erreur est survenue lors de l\'inscription.';
+            if (msg.includes('contacter le serveur')) {
+                msg = "Le serveur est en cours de démarrage. Réessayez dans 30 secondes.";
+            }
+            setError(msg);
             console.error(err);
         } finally {
             setLoading(false);

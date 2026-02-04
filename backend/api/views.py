@@ -85,6 +85,7 @@ class SubmissionViewSet(viewsets.ModelViewSet):
                 # Check Submission Limit
                 if form_link.submissions_limit > 0:
                     current_count = Submission.objects.filter(link_id=link_id).count()
+                    print(f"DEBUG: Link {link_id} Limit Check - Current: {current_count}, Limit: {form_link.submissions_limit}")
                     if current_count >= form_link.submissions_limit:
                         return Response(
                             {'error': 'Ce lien a atteint sa limite de participations.'}, 
@@ -246,3 +247,15 @@ class UserProfileViewSet(viewsets.ViewSet):
         
         user.save()
         return Response({'message': 'Profile updated successfully'})
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+@api_view(['GET'])
+def health_check(request):
+    """Simple endpoint to keep the server awake and check status."""
+    return Response({
+        "status": "online",
+        "message": "NexusLink Backend is running",
+        "timestamp": timezone.now()
+    })

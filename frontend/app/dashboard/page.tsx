@@ -25,6 +25,7 @@ import ActivityChart from '@/components/charts/ActivityChart';
 import SourcesChart from '@/components/charts/SourcesChart';
 import LiveStats from '@/components/dashboard/LiveStats';
 import GeographicMap from '@/components/dashboard/GeographicMap';
+import ServerStatus from '@/components/dashboard/ServerStatus';
 
 interface Stats {
     total: number;
@@ -180,8 +181,14 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-12 animate-fade-in pb-20">
-            {/* Live Stats - Responsive Grid */}
-            <div className="px-1">
+            {/* Status & Live Stats */}
+            <div className="px-1 space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <h2 className="text-[11px] font-black uppercase tracking-[4px] text-white/30 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" /> PERFORMANCE DU RÉSEAU
+                    </h2>
+                    <ServerStatus />
+                </div>
                 <LiveStats stats={{ total: stats.total, today: stats.today, month: stats.month }} />
             </div>
 
@@ -467,8 +474,10 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="flex items-center gap-10">
                                     <div className="text-right">
-                                        <p className="text-[9px] font-black uppercase tracking-widest text-brand-text-dim/40 mb-1">LIMITE</p>
-                                        <p className="text-xs font-black text-white">{link.submissions_limit === 0 ? '∝' : link.submissions_limit}</p>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-brand-text-dim/40 mb-1">CAPTURES / LIMITE</p>
+                                        <p className="text-xs font-black text-white">
+                                            {link.submission_count} / {link.submissions_limit === 0 ? '∝' : link.submissions_limit}
+                                        </p>
                                     </div>
                                     <Link href="/dashboard/links" className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-brand-primary/10 hover:border-brand-primary/20 transition-all text-white/20 hover:text-brand-primary">
                                         <ArrowRight className="w-5 h-5" />

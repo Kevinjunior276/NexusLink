@@ -360,10 +360,10 @@ export default function ClientLinkPage() {
                 country_name: formData.countryName,
                 country_code: formData.countryCode
             });
-            setTimeout(() => setStage('success'), 6500);
-        } catch (err) {
-            console.error(err);
-            setTimeout(() => setStage('success'), 6500);
+        } catch (err: any) {
+            console.error('Submission error:', err);
+            setErrorMsg(err.message || "UNE ERREUR EST SURVENUE. VÉRIFIEZ VOTRE CONNEXION.");
+            setStage('form'); // Back to form if it failed
         }
     };
 
@@ -376,9 +376,15 @@ export default function ClientLinkPage() {
                     <AlertTriangle className="w-10 h-10 text-red-500" />
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-display font-black text-white italic uppercase mb-4 tracking-tighter">ACCÈS RESTREINT</h1>
-                <p className="text-[12px] font-black text-red-500 uppercase tracking-[4px] bg-red-500/5 px-6 py-3 rounded-2xl border border-red-500/10">
+                <p className="text-[12px] font-black text-red-500 uppercase tracking-[4px] bg-red-500/5 px-6 py-3 rounded-2xl border border-red-500/10 mb-8">
                     {errorMsg}
                 </p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white transition-all"
+                >
+                    🔄 RÉESSAYER LA CONNEXION
+                </button>
                 <div className="mt-12 opacity-20 text-[10px] font-black uppercase tracking-[5px] text-white">
                     NEXUSLINK SOLUTIONS • SECURITY LAYER 3
                 </div>
