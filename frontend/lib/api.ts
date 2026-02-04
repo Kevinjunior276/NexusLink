@@ -61,7 +61,7 @@ const handleResponse = async (response: Response) => {
 };
 
 export const api = {
-    async post(endpoint: string, data: any, retries = 3) {
+    async post(endpoint: string, data: any, retries = 10) {
         console.log(`POST request to ${endpoint}`, data);
         for (let i = 0; i < retries; i++) {
             try {
@@ -74,17 +74,20 @@ export const api = {
                 return await handleResponse(response);
             } catch (err: any) {
                 const isNetworkError = err.message === 'Failed to fetch' || err.name === 'TypeError' || err.name === 'AbortError';
+
+                // Retry only on network errors (server sleeping/unreachable)
                 if (isNetworkError && i < retries - 1) {
-                    console.log(`Retry ${i + 1}/${retries} for ${endpoint}...`);
-                    await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1))); // Delay increases: 2s, 4s
+                    const waitTime = Math.min(2000 * (i + 1), 10000); // Cap wait at 10s
+                    console.log(`Retry ${i + 1}/${retries} for ${endpoint} in ${waitTime}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
                     continue;
                 }
 
+                // On last attempt or non-network error
                 console.error('Fetch error:', err);
                 throw new Error(
-                    `Impossible de contacter le serveur. \n\n` +
-                    `Le serveur est probablement en train de démarrer (Cold Start). \n` +
-                    `Réessayez dans un instant.`
+                    `Le serveur met trop de temps à répondre. \n` +
+                    `Il redémarre peut-être. Veuillez patienter 1 minute et réessayez.`
                 );
             }
         }
@@ -99,7 +102,7 @@ export const api = {
         return await handleResponse(response);
     },
 
-    async get(endpoint: string, retries = 3) {
+    async get(endpoint: string, retries = 10) {
         for (let i = 0; i < retries; i++) {
             try {
                 const response = await fetch(`${API_URL}${endpoint}`, {
@@ -109,7 +112,8 @@ export const api = {
             } catch (err: any) {
                 const isNetworkError = err.message === 'Failed to fetch' || err.name === 'TypeError' || err.name === 'AbortError';
                 if (isNetworkError && i < retries - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+                    const waitTime = Math.min(2000 * (i + 1), 10000);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
                     continue;
                 }
                 throw err;
