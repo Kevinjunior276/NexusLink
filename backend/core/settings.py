@@ -93,11 +93,16 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://crytotrade-pro.vercel.app",
-    "https://crytotrade-pro23.vercel.app",
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://127.0.0.1:3000",
+#     "https://crytotrade-pro.vercel.app",
+#     "https://crytotrade-pro23.vercel.app",
+# ]
+CSRF_TRUSTED_ORIGINS = [
+    'https://nexus-link-backend.onrender.com',
+    'https://crytotrade-pro.vercel.app',
+    'https://crytotrade-pro23.vercel.app'
 ]
 
 REST_FRAMEWORK = {
