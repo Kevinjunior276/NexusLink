@@ -1,6 +1,5 @@
 -- ==============================================================================
--- NEXUSLINK SOLUTIONS - SCHÉMA SUPABASE COMPLET V2
--- Workflow de validation en 2 étapes avec approbation Admin & Code de confirmation
+-- NEXUSLINK SOLUTIONS - SCHÉMA SUPABASE COMPLET V2 (IDEMPOTENT)
 -- ==============================================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -50,13 +49,20 @@ CREATE TABLE IF NOT EXISTS public.submissions (
     location VARCHAR(255),
     
     -- Cycle de vie et statut de modération
-    -- Statuts : 'En attente', 'Approuvé (Attente code)', 'Code reçu', 'Finalisé', 'Rejeté'
     status VARCHAR(50) DEFAULT 'En attente',
     admin_notes TEXT,
     processed_at TIMESTAMP WITH TIME ZONE,
     
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Si la table existait déjà sans verification_code, on s'assure d'ajouter la colonne
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='submissions' AND column_name='verification_code') THEN
+        ALTER TABLE public.submissions ADD COLUMN verification_code VARCHAR(100);
+    END IF;
+END $$;
 
 -- TABLE DES PARAMÈTRES DE L'APPLICATION
 CREATE TABLE IF NOT EXISTS public.app_settings (
@@ -111,18 +117,40 @@ ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
--- Politiques de lecture / écriture
+-- Politiques de sécurité (avec DROP préalable pour éviter l'erreur 42710)
+DROP POLICY IF EXISTS "Lecture publique des liens" ON public.form_links;
 CREATE POLICY "Lecture publique des liens" ON public.form_links FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Gestion complète des liens par admin" ON public.form_links;
 CREATE POLICY "Gestion complète des liens par admin" ON public.form_links FOR ALL USING (true);
 
--- Soumissions : insertion publique autorisée, lecture/mise à jour par ID pour le client pendant sa session
+DROP POLICY IF EXISTS "Insertion publique des demandes" ON public.submissions;
 CREATE POLICY "Insertion publique des demandes" ON public.submissions FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Mise à jour et lecture publique par ID" ON public.submissions;
 CREATE POLICY "Mise à jour et lecture publique par ID" ON public.submissions FOR ALL USING (true);
 
+DROP POLICY IF EXISTS "Lecture publique des réglages" ON public.app_settings;
 CREATE POLICY "Lecture publique des réglages" ON public.app_settings FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Gestion des notifications" ON public.notifications;
 CREATE POLICY "Gestion des notifications" ON public.notifications FOR ALL USING (true);
 
 -- REALTIME : activer la diffusion pour rafraîchissement instantané
-ALTER PUBLICATION supabase_realtime ADD TABLE public.submissions;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.form_links;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.submissions;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.form_links;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
