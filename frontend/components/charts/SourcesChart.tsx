@@ -6,22 +6,14 @@ interface SourcesChartProps {
     data: any[];
 }
 
-const COLORS = {
-    'Orange Money': '#f97316', // Orange
-    'MTN Money': '#eab308',    // Yellow
-    'Wave Mobile': '#3b82f6',  // Blue
-    'Virements': '#6366f1',    // Indigo
-    'Autres': '#888888'        // Gray
-};
-
 const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-[#03040b]/90 border border-white/10 p-3 rounded-xl backdrop-blur-md shadow-xl">
-                <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider mb-1">{payload[0].name}</p>
-                <p className="text-sm font-black text-white">
-                    {payload[0].value} <span className="text-[10px] font-medium text-white/50 ml-1">Capture(s)</span>
-                </p>
+            <div className="bg-slate-900/95 border border-white/10 p-2.5 rounded-xl backdrop-blur-md shadow-xl text-xs">
+                <span className="text-slate-400 block mb-0.5">{payload[0].name}</span>
+                <span className="font-semibold text-white font-mono">
+                    {payload[0].value} <span className="text-slate-400 font-normal">soumissions</span>
+                </span>
             </div>
         );
     }
@@ -31,26 +23,26 @@ const CustomTooltip = ({ active, payload }: any) => {
 export default function SourcesChart({ data }: SourcesChartProps) {
     if (!data || data.length === 0 || data.every(d => d.value === 0)) {
         return (
-            <div className="w-full h-full flex items-center justify-center">
-                <div className="text-center opacity-20">
-                    <div className="text-4xl mb-2">🥧</div>
-                    <div className="text-[10px] uppercase font-bold tracking-widest">Pas de données</div>
+            <div className="w-full h-64 flex flex-col items-center justify-center text-slate-500 text-xs">
+                <div className="w-8 h-8 rounded-full border border-slate-700/60 flex items-center justify-center mb-2">
+                    <span className="text-xs">0</span>
                 </div>
+                <span>Aucune soumission enregistrée</span>
             </div>
         );
     }
 
     return (
-        <div className="w-full h-full min-h-[300px]">
+        <div className="w-full h-64">
             <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                     <Pie
                         data={data}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
+                        innerRadius={55}
+                        outerRadius={75}
+                        paddingAngle={4}
                         dataKey="value"
                         stroke="none"
                     >
@@ -59,6 +51,11 @@ export default function SourcesChart({ data }: SourcesChartProps) {
                         ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
+                    <Legend
+                        verticalAlign="bottom"
+                        height={36}
+                        formatter={(value) => <span className="text-slate-300 text-xs">{value}</span>}
+                    />
                 </PieChart>
             </ResponsiveContainer>
         </div>

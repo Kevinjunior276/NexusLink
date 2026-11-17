@@ -3,17 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, Mail, ShieldCheck, ArrowRight, AlertCircle, User } from 'lucide-react';
+import { Lock, ShieldCheck, ArrowRight, AlertCircle, User, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function LoginPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [username, setUsername] = useState('');
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
 
-    // Clear any existing session on mount
     useEffect(() => {
         localStorage.removeItem('token');
     }, []);
@@ -24,8 +24,25 @@ export default function LoginPage() {
         setError(null);
 
         try {
+            // Si Supabase est configuré et que l'utilisateur entre un email
+            if (isSupabaseConfigured() && identifier.includes('@')) {
+                const { data, error: supaError } = await supabase.auth.signInWithPassword({
+                    email: identifier.trim(),
+                    password: password.trim(),
+                });
+
+                if (supaError) {
+                    console.warn('Supabase auth warning, trying API fallback:', supaError.message);
+                } else if (data.session) {
+                    localStorage.setItem('token', data.session.access_token);
+                    router.push('/dashboard');
+                    return;
+                }
+            }
+
+            // Fallback API Django
             const data = await api.post('/login/', {
-                username: username.trim(),
+                username: identifier.trim(),
                 password: password.trim(),
             });
 
@@ -33,93 +50,105 @@ export default function LoginPage() {
                 localStorage.setItem('token', data.token);
                 router.push('/dashboard');
             } else {
-                setError('Échec de la connexion. Token non reçu.');
+                setError('Échec de la connexion. Informations invalides.');
             }
         } catch (err: any) {
-            let msg = err.message || 'Email ou mot de passe incorrect.';
+            let msg = err.message || 'Identifiant ou mot de passe incorrect.';
             if (msg.includes('redémarre peut-être') || msg.includes('met trop de temps')) {
-                msg = "⚠️ Le serveur redémarre (Cold Start). Veuillez patienter 1 minute et réessayer.";
+                msg = "Le serveur est en cours d'initialisation. Veuillez patienter un instant et réessayer.";
             }
             setError(msg);
-            console.error(err);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-[#03040b] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-            <div className="orb orb-blue opacity-10" />
-            <div className="w-full max-w-[420px] relative z-10 animate-fade-in">
-                <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 mb-6 group transition-all hover:scale-110">
-                        <Lock className="w-8 h-8 text-brand-primary group-hover:rotate-12 transition-transform" />
+        <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center p-4 relative">
+            <div className="w-full max-w-[400px] relative z-10">
+                {/* Brand Logo & Header */}
+                <div className="text-center mb-8">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 mb-4 shadow-lg shadow-blue-500/10">
+                        <ShieldCheck className="w-6 h-6" />
                     </div>
-                    <h2 className="text-[10px] font-black uppercase tracking-[4px] text-brand-primary mb-2">🔐 ACCÈS ADMINISTRATEUR SÉCURISÉ</h2>
-                    <h1 className="font-display text-3xl font-bold tracking-tight text-white uppercase italic">NexusLink Solutions</h1>
+                    <h1 className="text-xl font-bold text-white tracking-tight">NexusLink Portal</h1>
+                    <p className="text-xs text-slate-400 mt-1">Espace d'administration et de gestion des flux</p>
                 </div>
 
-                <article className="glass-card rounded-[32px] p-10 border-white/5 bg-white/[0.01]">
-                    <form onSubmit={handleLogin} className="space-y-6">
+                <div className="glass-card rounded-2xl p-6 sm:p-8">
+                    <form onSubmit={handleLogin} className="space-y-5">
                         {error && (
-                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-xs shadow-xl animate-shake">
-                                <AlertCircle className="w-4 h-4 shrink-0" />
-                                {error}
+                            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5 text-rose-300 text-xs">
+                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                <span>{error}</span>
                             </div>
                         )}
 
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-[11px] font-bold text-brand-text-dim uppercase tracking-widest ml-1">Nom d'utilisateur ou Email</label>
-                                <div className="relative">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-text-dim" />
-                                    <input
-                                        type="text"
-                                        required
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                        placeholder="admin"
-                                        className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 pl-12 text-sm focus:outline-none focus:border-brand-primary/50 transition-all text-white"
-                                    />
-                                </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                                Identifiant ou adresse email
+                            </label>
+                            <div className="relative">
+                                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                <input
+                                    type="text"
+                                    required
+                                    value={identifier}
+                                    onChange={(e) => setIdentifier(e.target.value)}
+                                    placeholder="admin ou contact@domaine.com"
+                                    className="input-field pl-10 text-sm"
+                                />
                             </div>
+                        </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[11px] font-bold text-brand-text-dim uppercase tracking-widest ml-1">Mot de passe</label>
-                                <div className="relative">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-text-dim" />
-                                    <input
-                                        type="password"
-                                        required
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="••••••••••••"
-                                        className="w-full bg-[#03040b] border border-white/10 rounded-2xl py-4 px-6 pl-12 text-sm focus:outline-none focus:border-brand-primary/50 transition-all text-white"
-                                    />
-                                </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                                Mot de passe
+                            </label>
+                            <div className="relative">
+                                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                <input
+                                    type="password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••••••"
+                                    className="input-field pl-10 text-sm"
+                                />
                             </div>
                         </div>
 
                         <button
+                            type="submit"
                             disabled={loading}
-                            className="w-full btn-premium py-4 rounded-2xl text-[13px] font-black uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 relative group"
+                            className="btn-premium w-full py-3 text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer mt-2"
                         >
-                            <span className="relative z-10">{loading ? 'Vérification...' : '🚀 SE CONNECTER'}</span>
-                            {!loading && <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />}
+                            {loading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>Authentification...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>Accéder au Tableau de Bord</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </>
+                            )}
                         </button>
                     </form>
 
-                    <div className="mt-8 text-center border-t border-white/5 pt-6">
-                        <p className="text-[12px] text-brand-text-dim">
-                            Pas encore de compte ?{' '}
-                            <Link href="/register" className="text-brand-primary font-bold hover:underline">Créer un compte</Link>
-                        </p>
+                    <div className="mt-6 pt-5 border-t border-white/[0.06] text-center">
+                        <Link
+                            href="/register"
+                            className="text-xs text-slate-400 hover:text-blue-400 transition-colors"
+                        >
+                            Pas encore de compte administrateur ? <span className="text-blue-400 font-medium">Créer un compte</span>
+                        </Link>
                     </div>
-                </article>
+                </div>
 
-                <div className="mt-8 flex items-center justify-center gap-3 text-brand-text-dim opacity-40">
-                    <ShieldCheck className="w-4 h-4" />
-                    <span className="text-[10px] font-bold uppercase tracking-[2px]">🛡️ Système de Sécurité Actif</span>
+                <div className="mt-8 text-center text-[11px] text-slate-400">
+                    Infrastructure sécurisée NexusLink Solutions • Session cryptée
                 </div>
             </div>
         </div>
