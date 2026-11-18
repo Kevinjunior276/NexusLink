@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, ShieldCheck, ArrowRight, AlertCircle, User, Loader2, AlertTriangle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { api } from '@/lib/api';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -28,61 +27,45 @@ export default function LoginPage() {
         const cleanIdentifier = identifier.trim();
         const cleanPassword = password.trim();
 
-        // 1. Si Supabase est configuré (Mode Supabase Cloud)
-        if (isSupabaseConfigured()) {
-            try {
-                // Si l'utilisateur n'a pas mis de '@', on tente avec le domaine par défaut ou le format email
-                const emailToTry = cleanIdentifier.includes('@')
-                    ? cleanIdentifier
-                    : `${cleanIdentifier}@nexuslink.pro`;
-
-                const { data, error: supaError } = await supabase.auth.signInWithPassword({
-                    email: emailToTry,
-                    password: cleanPassword,
-                });
-
-                if (supaError) {
-                    // Si l'erreur est "Invalid login credentials", message clair
-                    if (supaError.message.toLowerCase().includes('invalid login credentials')) {
-                        setError("Identifiant ou mot de passe incorrect. Si vous venez de créer votre projet Supabase, créez d'abord votre compte administrateur via le lien d'inscription ci-dessous.");
-                    } else {
-                        setError(supaError.message);
-                    }
-                    return;
-                }
-
-                if (data.session) {
-                    localStorage.setItem('token', data.session.access_token);
-                    router.push('/dashboard');
-                    return;
-                }
-            } catch (err: any) {
-                setError(err.message || "Erreur de connexion Supabase.");
-                return;
-            } finally {
-                setLoading(false);
-            }
+        if (!isSupabaseConfigured()) {
+            setError(
+                "La clé API Supabase (NEXT_PUBLIC_SUPABASE_ANON_KEY) n'est pas encore reconnue. " +
+                "Vérifiez vos variables d'environnement sur Vercel et relancez un Redeploy."
+            );
+            setLoading(false);
             return;
         }
 
-        // 2. Si Supabase n'est pas encore configuré (Avertissement clair pour Vercel)
         try {
-            const data = await api.post('/login/', {
-                username: cleanIdentifier,
+            // Transformation automatique en email si l'admin saisit un identifiant court
+            const emailToTry = cleanIdentifier.includes('@')
+                ? cleanIdentifier
+                : `${cleanIdentifier}@nexuslink.pro`;
+
+            const { data, error: supaError } = await supabase.auth.signInWithPassword({
+                email: emailToTry,
                 password: cleanPassword,
             });
 
-            if (data.token) {
-                localStorage.setItem('token', data.token);
+            if (supaError) {
+                if (supaError.message.toLowerCase().includes('invalid login credentials')) {
+                    setError(
+                        "Identifiant ou mot de passe incorrect. Avez-vous déjà créé votre compte administrateur sur ce nouveau projet Supabase ? (Cliquez sur 'Créer un compte' ci-dessous)"
+                    );
+                } else {
+                    setError(supaError.message);
+                }
+                setLoading(false);
+                return;
+            }
+
+            if (data.session) {
+                localStorage.setItem('token', data.session.access_token);
                 router.push('/dashboard');
-            } else {
-                setError('Échec de la connexion. Informations invalides.');
+                return;
             }
         } catch (err: any) {
-            setError(
-                "Votre backend Supabase n'est pas encore configuré sur Vercel. " +
-                "Veuillez renseigner NEXT_PUBLIC_SUPABASE_ANON_KEY dans les paramètres Vercel pour vous connecter."
-            );
+            setError(err.message || "Erreur de connexion.");
         } finally {
             setLoading(false);
         }
@@ -105,7 +88,7 @@ export default function LoginPage() {
                         <div className="mb-5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2">
                             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                             <span>
-                                Clé Supabase manquante sur Vercel. Ajoutez <strong>NEXT_PUBLIC_SUPABASE_ANON_KEY</strong> dans les paramètres Vercel puis redéployez.
+                                Clé Supabase manquante. Ajoutez <strong>NEXT_PUBLIC_SUPABASE_ANON_KEY</strong> dans les paramètres Vercel puis faites Redeploy.
                             </span>
                         </div>
                     )}
@@ -160,7 +143,7 @@ export default function LoginPage() {
                             {loading ? (
                                 <>
                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span>Authentification...</span>
+                                    <span>Connexion en cours...</span>
                                 </>
                             ) : (
                                 <>
@@ -182,7 +165,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="mt-8 text-center text-[11px] text-slate-500">
-                    Infrastructure sécurisée NexusLink Solutions • Session cryptée
+                    Infrastructure sécurisée NexusLink Solutions • Connexion Supabase
                 </div>
             </div>
         </div>

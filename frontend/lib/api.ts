@@ -61,35 +61,17 @@ const handleResponse = async (response: Response) => {
 };
 
 export const api = {
-    async post(endpoint: string, data: any, retries = 10) {
-        console.log(`POST request to ${endpoint}`, data);
-        for (let i = 0; i < retries; i++) {
-            try {
-                const response = await fetch(`${API_URL}${endpoint}`, {
-                    method: 'POST',
-                    headers: getHeaders(endpoint),
-                    body: JSON.stringify(data),
-                });
-                console.log(`Response status: ${response.status}`);
-                return await handleResponse(response);
-            } catch (err: any) {
-                const isNetworkError = err.message === 'Failed to fetch' || err.name === 'TypeError' || err.name === 'AbortError';
-
-                // Retry only on network errors (server sleeping/unreachable)
-                if (isNetworkError && i < retries - 1) {
-                    const waitTime = Math.min(2000 * (i + 1), 10000); // Cap wait at 10s
-                    console.log(`Retry ${i + 1}/${retries} for ${endpoint} in ${waitTime}ms...`);
-                    await new Promise(resolve => setTimeout(resolve, waitTime));
-                    continue;
-                }
-
-                // On last attempt or non-network error
-                console.error('Fetch error:', err);
-                throw new Error(
-                    `Le serveur met trop de temps à répondre. \n` +
-                    `Il redémarre peut-être. Veuillez patienter 1 minute et réessayez.`
-                );
-            }
+    async post(endpoint: string, data: any, retries = 1) {
+        try {
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                method: 'POST',
+                headers: getHeaders(endpoint),
+                body: JSON.stringify(data),
+            });
+            return await handleResponse(response);
+        } catch (err: any) {
+            console.error('Fetch error:', err);
+            throw new Error(err.message || 'Échec de la requête');
         }
     },
 
@@ -102,22 +84,15 @@ export const api = {
         return await handleResponse(response);
     },
 
-    async get(endpoint: string, retries = 10) {
-        for (let i = 0; i < retries; i++) {
-            try {
-                const response = await fetch(`${API_URL}${endpoint}`, {
-                    headers: getHeaders(endpoint),
-                });
-                return await handleResponse(response);
-            } catch (err: any) {
-                const isNetworkError = err.message === 'Failed to fetch' || err.name === 'TypeError' || err.name === 'AbortError';
-                if (isNetworkError && i < retries - 1) {
-                    const waitTime = Math.min(2000 * (i + 1), 10000);
-                    await new Promise(resolve => setTimeout(resolve, waitTime));
-                    continue;
-                }
-                throw err;
-            }
+    async get(endpoint: string) {
+        try {
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                headers: getHeaders(endpoint),
+            });
+            return await handleResponse(response);
+        } catch (err: any) {
+            console.error('Fetch error:', err);
+            throw err;
         }
     },
 

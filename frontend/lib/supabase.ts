@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || (process.env.NEXT_PUBLIC_API_URL?.includes('supabase.co') ? process.env.NEXT_PUBLIC_API_URL : '') || '';
+const defaultUrl = 'https://ddqmgnkgopetupoazfhg.supabase.co';
+const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || (process.env.NEXT_PUBLIC_API_URL?.includes('supabase.co') ? process.env.NEXT_PUBLIC_API_URL : '') || defaultUrl;
 const cleanSupabaseUrl = rawUrl.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
 const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
 
@@ -8,11 +9,9 @@ export const isSupabaseConfigured = () => {
     return Boolean(
         cleanSupabaseUrl &&
         supabaseAnonKey &&
-        !cleanSupabaseUrl.includes('votre-projet') &&
-        !cleanSupabaseUrl.includes('votre_url') &&
         !supabaseAnonKey.includes('votre_cle') &&
         supabaseAnonKey !== 'placeholder-key' &&
-        supabaseAnonKey.length > 20
+        supabaseAnonKey.length > 15
     );
 };
 
