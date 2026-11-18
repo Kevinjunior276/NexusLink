@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, Mail, ShieldCheck, ArrowRight, AlertCircle, User as UserIcon, Loader2 } from 'lucide-react';
+import { Lock, Mail, ShieldCheck, ArrowRight, AlertCircle, User as UserIcon, Loader2, CheckCircle2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
@@ -17,13 +17,20 @@ export default function RegisterPage() {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+        setSuccessMessage(null);
 
         if (formData.password !== formData.confirmPassword) {
             setError('Les mots de passe ne correspondent pas.');
+            return;
+        }
+
+        if (formData.password.length < 6) {
+            setError('Le mot de passe doit contenir au moins 6 caractères.');
             return;
         }
 
@@ -41,14 +48,25 @@ export default function RegisterPage() {
                     }
                 });
 
-                if (!supaError && supaData.session) {
+                if (supaError) {
+                    setError(supaError.message);
+                    return;
+                }
+
+                if (supaData.session) {
                     localStorage.setItem('token', supaData.session.access_token);
                     router.push('/dashboard');
+                    return;
+                } else if (supaData.user) {
+                    setSuccessMessage(
+                        "Compte créé avec succès ! Si un email de confirmation vous a été envoyé, validez-le puis connectez-vous."
+                    );
+                    setTimeout(() => router.push('/login'), 2500);
                     return;
                 }
             }
 
-            // Fallback API Django
+            // Fallback si Supabase n'est pas encore configuré
             const data = await api.post('/register/', {
                 username: formData.username.trim(),
                 email: formData.email.trim(),
@@ -62,8 +80,7 @@ export default function RegisterPage() {
                 setError('Échec de la création du compte.');
             }
         } catch (err: any) {
-            let msg = err.message || "Une erreur est survenue lors de l'inscription.";
-            setError(msg);
+            setError(err.message || "Une erreur est survenue lors de l'inscription.");
         } finally {
             setLoading(false);
         }
@@ -81,6 +98,13 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="glass-card rounded-2xl p-6 sm:p-8">
+                    {successMessage && (
+                        <div className="mb-4 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-2.5 text-emerald-300 text-xs">
+                            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                            <span>{successMessage}</span>
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {error && (
                             <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5 text-rose-300 text-xs">
@@ -125,7 +149,7 @@ export default function RegisterPage() {
 
                         <div>
                             <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                                Mot de passe
+                                Mot de passe (min. 6 caractères)
                             </label>
                             <div className="relative">
                                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />

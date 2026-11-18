@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, ShieldCheck, ArrowRight, AlertCircle, User, Loader2 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { Lock, ShieldCheck, ArrowRight, AlertCircle, User, Loader2, AlertTriangle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { api } from '@/lib/api';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -13,9 +13,11 @@ export default function LoginPage() {
     const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [configured, setConfigured] = useState(true);
 
     useEffect(() => {
         localStorage.removeItem('token');
+        setConfigured(isSupabaseConfigured());
     }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -23,27 +25,51 @@ export default function LoginPage() {
         setLoading(true);
         setError(null);
 
-        try {
-            // Si Supabase est configuré et que l'utilisateur entre un email
-            if (isSupabaseConfigured() && identifier.includes('@')) {
+        const cleanIdentifier = identifier.trim();
+        const cleanPassword = password.trim();
+
+        // 1. Si Supabase est configuré (Mode Supabase Cloud)
+        if (isSupabaseConfigured()) {
+            try {
+                // Si l'utilisateur n'a pas mis de '@', on tente avec le domaine par défaut ou le format email
+                const emailToTry = cleanIdentifier.includes('@')
+                    ? cleanIdentifier
+                    : `${cleanIdentifier}@nexuslink.pro`;
+
                 const { data, error: supaError } = await supabase.auth.signInWithPassword({
-                    email: identifier.trim(),
-                    password: password.trim(),
+                    email: emailToTry,
+                    password: cleanPassword,
                 });
 
                 if (supaError) {
-                    console.warn('Supabase auth warning, trying API fallback:', supaError.message);
-                } else if (data.session) {
+                    // Si l'erreur est "Invalid login credentials", message clair
+                    if (supaError.message.toLowerCase().includes('invalid login credentials')) {
+                        setError("Identifiant ou mot de passe incorrect. Si vous venez de créer votre projet Supabase, créez d'abord votre compte administrateur via le lien d'inscription ci-dessous.");
+                    } else {
+                        setError(supaError.message);
+                    }
+                    return;
+                }
+
+                if (data.session) {
                     localStorage.setItem('token', data.session.access_token);
                     router.push('/dashboard');
                     return;
                 }
+            } catch (err: any) {
+                setError(err.message || "Erreur de connexion Supabase.");
+                return;
+            } finally {
+                setLoading(false);
             }
+            return;
+        }
 
-            // Fallback API Django
+        // 2. Si Supabase n'est pas encore configuré (Avertissement clair pour Vercel)
+        try {
             const data = await api.post('/login/', {
-                username: identifier.trim(),
-                password: password.trim(),
+                username: cleanIdentifier,
+                password: cleanPassword,
             });
 
             if (data.token) {
@@ -53,11 +79,10 @@ export default function LoginPage() {
                 setError('Échec de la connexion. Informations invalides.');
             }
         } catch (err: any) {
-            let msg = err.message || 'Identifiant ou mot de passe incorrect.';
-            if (msg.includes('redémarre peut-être') || msg.includes('met trop de temps')) {
-                msg = "Le serveur est en cours d'initialisation. Veuillez patienter un instant et réessayer.";
-            }
-            setError(msg);
+            setError(
+                "Votre backend Supabase n'est pas encore configuré sur Vercel. " +
+                "Veuillez renseigner NEXT_PUBLIC_SUPABASE_ANON_KEY dans les paramètres Vercel pour vous connecter."
+            );
         } finally {
             setLoading(false);
         }
@@ -76,9 +101,18 @@ export default function LoginPage() {
                 </div>
 
                 <div className="glass-card rounded-2xl p-6 sm:p-8">
+                    {!configured && (
+                        <div className="mb-5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                            <span>
+                                Clé Supabase manquante sur Vercel. Ajoutez <strong>NEXT_PUBLIC_SUPABASE_ANON_KEY</strong> dans les paramètres Vercel puis redéployez.
+                            </span>
+                        </div>
+                    )}
+
                     <form onSubmit={handleLogin} className="space-y-5">
                         {error && (
-                            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5 text-rose-300 text-xs">
+                            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2.5 text-rose-300 text-xs leading-relaxed">
                                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                                 <span>{error}</span>
                             </div>
@@ -137,17 +171,17 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    <div className="mt-6 pt-5 border-t border-white/[0.06] text-center">
+                    <div className="mt-6 pt-5 border-t border-white/[0.06] text-center space-y-2">
                         <Link
                             href="/register"
-                            className="text-xs text-slate-400 hover:text-blue-400 transition-colors"
+                            className="text-xs text-slate-400 hover:text-blue-400 transition-colors block"
                         >
                             Pas encore de compte administrateur ? <span className="text-blue-400 font-medium">Créer un compte</span>
                         </Link>
                     </div>
                 </div>
 
-                <div className="mt-8 text-center text-[11px] text-slate-400">
+                <div className="mt-8 text-center text-[11px] text-slate-500">
                     Infrastructure sécurisée NexusLink Solutions • Session cryptée
                 </div>
             </div>

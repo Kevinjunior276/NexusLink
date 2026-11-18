@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { dataService } from '@/lib/dataService';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const adminMenuItems = [
@@ -69,6 +70,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             try {
                 const settings = await dataService.getAppSettings();
                 if (settings?.app_name) setAppName(settings.app_name);
+
+                if (isSupabaseConfigured()) {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user?.user_metadata?.username) {
+                        setAdminName(user.user_metadata.username);
+                    } else if (user?.email) {
+                        setAdminName(user.email.split('@')[0]);
+                    }
+                }
             } catch (error) {
                 console.warn('Failed to fetch dashboard info:', error);
             }
