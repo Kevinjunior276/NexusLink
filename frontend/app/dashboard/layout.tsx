@@ -38,32 +38,74 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [appName, setAppName] = useState('NexusLink Solutions');
     const [notifications, setNotifications] = useState<any[]>([]);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
+    const [dismissedIds, setDismissedIds] = useState<string[]>([]);
 
-    const prevUnreadCount = useRef(0);
-    const isFirstLoad = useRef(true);
-
-    const playNotificationSound = () => {
+    // Chargement des notifications enregistrées comme lues
+    useEffect(() => {
         try {
-            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-            audio.volume = 0.4;
-            audio.play().catch(() => {});
+            const saved = localStorage.getItem('nexuslink_read_notifs');
+            if (saved) setDismissedIds(JSON.parse(saved));
         } catch {}
-    };
+
+        // Enregistrement du Service Worker pour les alertes mobiles système
+        if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch((err) => {
+                console.warn('SW registration warning:', err);
+            });
+        }
+    }, []);
 
     const fetchNotifications = async () => {
         try {
-            const data = await dataService.getNotifications();
-            setNotifications(data || []);
+            const subs = await dataService.getSubmissions();
+            if (!subs || !Array.isArray(subs)) return;
 
-            const currentUnread = (data || []).filter((n: any) => !n.is_read).length;
-            if (currentUnread > prevUnreadCount.current && !isFirstLoad.current) {
-                playNotificationSound();
-            }
-            prevUnreadCount.current = currentUnread;
-            isFirstLoad.current = false;
+            let savedRead: string[] = [];
+            try {
+                const s = localStorage.getItem('nexuslink_read_notifs');
+                if (s) savedRead = JSON.parse(s);
+            } catch {}
+
+            const formatted = subs.slice(0, 15).map((s: any) => {
+                const isCode = s.status === 'Code reçu' || Boolean(s.verification_code);
+                const isRead = savedRead.includes(s.id) || s.status === 'Finalisé';
+
+                return {
+                    id: s.id,
+                    submissionId: s.id,
+                    title: isCode ? `🔑 Code reçu de ${s.full_name}` : `📄 Demande : ${s.full_name}`,
+                    message: isCode
+                        ? `Code / Lien : ${s.verification_code || 'Reçu'} (${s.phone})`
+                        : `Moyen : ${s.method || 'Standard'} • Tél : ${s.phone}`,
+                    time: s.processed_at || s.created_at,
+                    isCode,
+                    is_read: isRead,
+                    status: s.status || 'En attente'
+                };
+            });
+
+            setNotifications(formatted);
         } catch (error) {
             console.warn('Failed to fetch notifications:', error);
         }
+    };
+
+    const markAllAsRead = () => {
+        const allIds = notifications.map(n => n.id);
+        setDismissedIds(allIds);
+        try {
+            localStorage.setItem('nexuslink_read_notifs', JSON.stringify(allIds));
+        } catch {}
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    };
+
+    const markSingleAsRead = (id: string) => {
+        const next = [...dismissedIds, id];
+        setDismissedIds(next);
+        try {
+            localStorage.setItem('nexuslink_read_notifs', JSON.stringify(next));
+        } catch {}
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     };
 
     useEffect(() => {
@@ -237,12 +279,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <div className="relative">
                             <button
                                 onClick={() => setIsNotifOpen(!isNotifOpen)}
-                                className="p-2 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white relative transition-colors"
+                                className={cn(
+                                    "p-2 rounded-xl bg-slate-900 border text-slate-300 hover:text-white relative transition-all cursor-pointer",
+                                    unreadCount > 0 ? "border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/20" : "border-white/10"
+                                )}
+                                title="Centre de notifications en direct"
                             >
-                                <Bell className="w-4 h-4" />
+                                <Bell className={cn("w-4 h-4", unreadCount > 0 && "animate-bounce text-emerald-400")} />
                                 {unreadCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-[10px] font-bold text-white flex items-center justify-center">
-                                        {unreadCount}
+                                    <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 text-[10px] font-black text-slate-950 flex items-center justify-center shadow-md animate-pulse">
+                                        {unreadCount > 9 ? '9+' : unreadCount}
                                     </span>
                                 )}
                             </button>
@@ -250,24 +296,79 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <AnimatePresence>
                                 {isNotifOpen && (
                                     <motion.div
-                                        initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                                        className="absolute right-0 top-12 w-80 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl p-4 z-50 ring-1 ring-white/10"
+                                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                        className="absolute right-0 top-12 w-84 sm:w-96 bg-slate-900/98 border border-slate-700/80 rounded-2xl shadow-2xl p-4 z-50 ring-1 ring-white/10 backdrop-blur-2xl"
                                     >
                                         <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-                                            <span className="text-xs font-semibold text-white">Notifications</span>
-                                            <span className="text-[10px] text-slate-400 font-mono">{unreadCount} non lues</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-bold text-white uppercase tracking-wider">Alertes en Direct</span>
+                                                {unreadCount > 0 && (
+                                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold">
+                                                        {unreadCount} active{unreadCount > 1 ? 's' : ''}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {unreadCount > 0 && (
+                                                <button
+                                                    onClick={markAllAsRead}
+                                                    className="text-[11px] text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
+                                                >
+                                                    Tout marquer lu
+                                                </button>
+                                            )}
                                         </div>
 
-                                        <div className="max-h-64 overflow-y-auto space-y-2">
+                                        <div className="max-h-80 overflow-y-auto space-y-2.5 pr-1">
                                             {notifications.length === 0 ? (
-                                                <p className="text-xs text-slate-400 text-center py-4">Aucune notification</p>
+                                                <p className="text-xs text-slate-400 text-center py-6">Aucune activité pour le moment.</p>
                                             ) : (
-                                                notifications.map((n, idx) => (
-                                                    <div key={idx} className="p-2.5 rounded-xl bg-slate-800/60 border border-white/5 text-xs">
-                                                        <span className="font-semibold text-slate-200 block mb-0.5">{n.title}</span>
-                                                        <span className="text-slate-400 block text-[11px] leading-relaxed">{n.message}</span>
+                                                notifications.map((n) => (
+                                                    <div
+                                                        key={n.id}
+                                                        className={cn(
+                                                            "p-3 rounded-xl border text-xs transition-all flex flex-col gap-1.5",
+                                                            n.isCode
+                                                                ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-100"
+                                                                : "bg-slate-800/60 border-white/5 text-slate-200",
+                                                            !n.is_read && "ring-1 ring-emerald-500/40"
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="font-bold text-white text-xs truncate">
+                                                                {n.title}
+                                                            </span>
+                                                            <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                                                                {n.time ? new Date(n.time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                                                            </span>
+                                                        </div>
+
+                                                        <p className="text-[11px] text-slate-300 font-mono break-all leading-snug">
+                                                            {n.message}
+                                                        </p>
+
+                                                        <div className="flex items-center justify-between pt-1 border-t border-white/5 mt-1">
+                                                            <Link
+                                                                href={`/dashboard/submissions/${n.submissionId}`}
+                                                                onClick={() => {
+                                                                    markSingleAsRead(n.id);
+                                                                    setIsNotifOpen(false);
+                                                                }}
+                                                                className="text-[11px] text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 cursor-pointer"
+                                                            >
+                                                                <span>Ouvrir la fiche</span>
+                                                                <ExternalLink className="w-3 h-3" />
+                                                            </Link>
+                                                            {!n.is_read && (
+                                                                <button
+                                                                    onClick={() => markSingleAsRead(n.id)}
+                                                                    className="text-[10px] text-slate-400 hover:text-white"
+                                                                >
+                                                                    Ignorer
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 ))
                                             )}

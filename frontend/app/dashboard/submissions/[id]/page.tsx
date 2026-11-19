@@ -27,6 +27,16 @@ import { useParams, useRouter } from 'next/navigation';
 import { dataService } from '@/lib/dataService';
 import { generateSubmissionPDF } from '@/lib/pdfExport';
 
+const getPaymentLogo = (method: string) => {
+    const m = (method || '').toLowerCase();
+    if (m.includes('wave')) return '/logos/wave.png';
+    if (m.includes('orange')) return '/logos/orange-money.svg';
+    if (m.includes('airtel')) return '/logos/airtel.svg';
+    if (m.includes('pessa') || m.includes('mpesa')) return '/logos/mpesa.svg';
+    if (m.includes('mtn')) return '/logos/mtn.svg';
+    return null;
+};
+
 export default function SubmissionDetails() {
     const params = useParams();
     const router = useRouter();
@@ -267,8 +277,15 @@ export default function SubmissionDetails() {
                         <div className="p-3.5 rounded-xl bg-slate-900/60 border border-white/5 space-y-2.5 text-xs">
                             <div className="flex justify-between items-center">
                                 <span className="text-slate-400">Moyen de paiement :</span>
-                                <span className="font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">
-                                    {submission.method || 'Standard'}
+                                <span className="inline-flex items-center gap-2 font-semibold text-slate-200 bg-slate-800/80 border border-white/10 px-2.5 py-1 rounded-lg">
+                                    {getPaymentLogo(submission.method) ? (
+                                        <span className="w-5 h-5 rounded-md bg-white p-0.5 flex items-center justify-center shrink-0 shadow-xs overflow-hidden">
+                                            <img src={getPaymentLogo(submission.method)!} alt="" className="w-full h-full object-contain" />
+                                        </span>
+                                    ) : (
+                                        <span>💳</span>
+                                    )}
+                                    <span>{submission.method || 'Standard'}</span>
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">

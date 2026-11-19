@@ -21,6 +21,16 @@ import Link from 'next/link';
 import { dataService } from '@/lib/dataService';
 import { generateSubmissionPDF } from '@/lib/pdfExport';
 
+const getPaymentLogo = (method: string) => {
+    const m = (method || '').toLowerCase();
+    if (m.includes('wave')) return '/logos/wave.png';
+    if (m.includes('orange')) return '/logos/orange-money.svg';
+    if (m.includes('airtel')) return '/logos/airtel.svg';
+    if (m.includes('pessa') || m.includes('mpesa')) return '/logos/mpesa.svg';
+    if (m.includes('mtn')) return '/logos/mtn.svg';
+    return null;
+};
+
 export default function SubmissionsPage() {
     const [submissions, setSubmissions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -167,8 +177,15 @@ export default function SubmissionsPage() {
                                                 <span className="text-[11px] text-slate-400 font-mono block">{sub.phone}</span>
                                             </td>
                                             <td className="py-3.5">
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-300">
-                                                    {sub.method || 'Non spécifié'}
+                                                <span className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900/90 border border-white/10 text-slate-200">
+                                                    {getPaymentLogo(sub.method) ? (
+                                                        <span className="w-5 h-5 rounded-md bg-white p-0.5 flex items-center justify-center shrink-0 shadow-xs overflow-hidden">
+                                                            <img src={getPaymentLogo(sub.method)!} alt="" className="w-full h-full object-contain" />
+                                                        </span>
+                                                    ) : (
+                                                        <span>💳</span>
+                                                    )}
+                                                    <span>{sub.method || 'Standard'}</span>
                                                 </span>
                                             </td>
                                             <td className="py-3.5 max-w-xs">

@@ -142,14 +142,31 @@ export default function LiveNotificationSystem() {
         setCurrentAlert(fullAlert);
         playSound();
 
-        // Notification de bureau si autorisé
+        // Notification de bureau et système mobile (Android / APK)
         if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
             try {
-                new Notification(fullAlert.title, {
-                    body: fullAlert.message,
-                    icon: '/favicon.ico'
-                });
-            } catch {}
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then((reg) => {
+                        reg.showNotification(fullAlert.title, {
+                            body: fullAlert.message,
+                            icon: '/logos/wave.png',
+                            badge: '/favicon.ico',
+                            vibrate: [300, 100, 300, 100, 300],
+                            tag: fullAlert.id,
+                            renotify: true,
+                            data: {
+                                url: fullAlert.submissionId ? `/dashboard/submissions/${fullAlert.submissionId}` : '/dashboard/submissions'
+                            }
+                        });
+                    }).catch(() => {
+                        new Notification(fullAlert.title, { body: fullAlert.message, icon: '/logos/wave.png' });
+                    });
+                } else {
+                    new Notification(fullAlert.title, { body: fullAlert.message, icon: '/logos/wave.png' });
+                }
+            } catch (err) {
+                console.warn('Erreur notification système:', err);
+            }
         }
 
         // Faire clignoter l'onglet du navigateur
@@ -158,17 +175,20 @@ export default function LiveNotificationSystem() {
             document.title = `🔔 ${fullAlert.title}`;
             setTimeout(() => {
                 document.title = originalTitle;
-            }, 6000);
+            }, 8000);
         }
 
-        // Fermeture automatique après 8 secondes
+        // Fermeture automatique après 15 secondes
         setTimeout(() => {
             setCurrentAlert((prev) => (prev?.id === fullAlert.id ? null : prev));
-        }, 8000);
+        }, 15000);
     };
 
     // Test manuel du son pour vérifier et autoriser le navigateur
-    const handleTestSound = () => {
+    const handleTestSound = async () => {
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+            await Notification.requestPermission().catch(() => {});
+        }
         playSound();
         triggerNotification({
             id: `test-${Date.now()}`,
@@ -193,6 +213,18 @@ export default function LiveNotificationSystem() {
                         });
                     });
                     isFirstLoadRef.current = false;
+
+                    // Si on entre et qu'il y a déjà un code validé en attente de validation finale :
+                    const urgentPending = subs.find((s: any) => s.status === 'Code reçu');
+                    if (urgentPending) {
+                        triggerNotification({
+                            id: `init-${urgentPending.id}`,
+                            type: 'code_received',
+                            title: 'Code / Lien Reçu du Client !',
+                            message: `${urgentPending.full_name} a validé : ${urgentPending.verification_code || 'Lien reçu'}`,
+                            submissionId: urgentPending.id,
+                        });
+                    }
                     return;
                 }
 

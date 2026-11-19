@@ -24,69 +24,74 @@ import { useParams } from 'next/navigation';
 import RecentPaymentsTicker from '@/components/form/RecentPaymentsTicker';
 import CountrySelector, { Country } from '@/components/form/CountrySelector';
 
-/* ─────────────────────────── Moyens de paiement ─────────────────────────── */
+/* ─────────────────────────── Moyens de paiement 100% Officiels ─────────────────────────── */
 const PAYMENT_METHODS = [
     {
         id: 'Wave',
         label: 'Wave',
-        color: '#00A3FF',
-        badgeBg: 'bg-[#00A3FF]/15',
-        border: 'border-[#00A3FF]/40',
-        logo: (
-            <div className="w-8 h-8 rounded-xl bg-[#00A3FF] flex items-center justify-center font-black text-white text-sm shadow-md shadow-[#00A3FF]/30 select-none">
-                W
-            </div>
-        ),
-    },
-    {
-        id: 'Airtel Money',
-        label: 'Airtel Money',
-        color: '#E30613',
-        badgeBg: 'bg-[#E30613]/15',
-        border: 'border-[#E30613]/40',
-        logo: (
-            <div className="w-8 h-8 rounded-xl bg-[#E30613] flex items-center justify-center font-black text-white text-sm shadow-md shadow-[#E30613]/30 select-none">
-                A
-            </div>
-        ),
+        logoUrl: '/logos/wave.png',
+        bg: 'bg-[#1DC3EC]/10',
+        border: 'border-[#1DC3EC]/30',
+        textColor: 'text-[#1DC3EC]'
     },
     {
         id: 'Orange Money',
         label: 'Orange Money',
-        color: '#FF6600',
-        badgeBg: 'bg-[#FF6600]/15',
-        border: 'border-[#FF6600]/40',
-        logo: (
-            <div className="w-8 h-8 rounded-xl bg-[#FF6600] flex items-center justify-center font-black text-white text-xs shadow-md shadow-[#FF6600]/30 select-none">
-                OM
-            </div>
-        ),
+        logoUrl: '/logos/orange-money.svg',
+        bg: 'bg-[#FF7900]/10',
+        border: 'border-[#FF7900]/30',
+        textColor: 'text-[#FF7900]'
+    },
+    {
+        id: 'Airtel Money',
+        label: 'Airtel Money',
+        logoUrl: '/logos/airtel.svg',
+        bg: 'bg-[#E30613]/10',
+        border: 'border-[#E30613]/30',
+        textColor: 'text-[#E30613]'
     },
     {
         id: 'Pessa',
-        label: 'Pessa',
-        color: '#00A651',
-        badgeBg: 'bg-[#00A651]/15',
-        border: 'border-[#00A651]/40',
-        logo: (
-            <div className="w-8 h-8 rounded-xl bg-[#00A651] flex items-center justify-center font-black text-white text-sm shadow-md shadow-[#00A651]/30 select-none">
-                P
-            </div>
-        ),
+        label: 'Pessa / M-Pesa',
+        logoUrl: '/logos/mpesa.svg',
+        bg: 'bg-[#39B54A]/10',
+        border: 'border-[#39B54A]/30',
+        textColor: 'text-[#39B54A]'
+    },
+    {
+        id: 'MTN Mobile Money',
+        label: 'MTN MoMo',
+        logoUrl: '/logos/mtn.svg',
+        bg: 'bg-[#FFCB05]/10',
+        border: 'border-[#FFCB05]/30',
+        textColor: 'text-[#FFCB05]'
     },
     {
         id: 'Autre',
         label: 'Autre moyen',
-        color: '#94A3B8',
-        badgeBg: 'bg-slate-800',
+        logoUrl: null,
+        bg: 'bg-slate-800',
         border: 'border-white/10',
-        logo: (
-            <div className="w-8 h-8 rounded-xl bg-slate-800 border border-white/15 flex items-center justify-center text-base shadow-sm select-none">
-                💳
-            </div>
-        ),
+        textColor: 'text-slate-300'
     },
 ];
+
+const renderPaymentLogo = (pm: typeof PAYMENT_METHODS[0], size: 'sm' | 'md' = 'md') => {
+    const sizeClasses = size === 'sm' ? 'w-8 h-8 p-1 rounded-lg' : 'w-10 h-10 p-1.5 rounded-xl';
+    return (
+        <div className={cn("bg-white flex items-center justify-center shrink-0 shadow-sm border border-white/20 overflow-hidden", sizeClasses)}>
+            {pm.logoUrl ? (
+                <img
+                    src={pm.logoUrl}
+                    alt={pm.label}
+                    className="w-full h-full object-contain"
+                />
+            ) : (
+                <span className={size === 'sm' ? "text-xs" : "text-base"}>💳</span>
+            )}
+        </div>
+    );
+};
 
 const COUNTRIES: Country[] = [
     { name: "Cameroun", code: "CM", dial: "+237" },
@@ -463,7 +468,7 @@ export default function ClientLinkPage() {
                                             className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-900/90 border border-white/10 hover:border-blue-500/50 text-left transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                                         >
                                             <div className="flex items-center gap-3">
-                                                {(PAYMENT_METHODS.find(p => p.id === formData.method) || PAYMENT_METHODS[0]).logo}
+                                                {renderPaymentLogo(PAYMENT_METHODS.find(p => p.id === formData.method) || PAYMENT_METHODS[0], 'md')}
                                                 <div>
                                                     <span className="text-sm font-semibold text-white block">
                                                         {(PAYMENT_METHODS.find(p => p.id === formData.method) || PAYMENT_METHODS[0]).label}
@@ -496,14 +501,14 @@ export default function ClientLinkPage() {
                                                                     setIsPaymentMenuOpen(false);
                                                                 }}
                                                                 className={cn(
-                                                                    "w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer",
+                                                                    "w-full flex items-center justify-between p-2 rounded-xl text-left transition-all cursor-pointer",
                                                                     isSelected
                                                                         ? "bg-blue-600/15 border border-blue-500/30 text-white"
                                                                         : "hover:bg-white/[0.05] text-slate-300"
                                                                 )}
                                                             >
                                                                 <div className="flex items-center gap-3">
-                                                                    {pm.logo}
+                                                                    {renderPaymentLogo(pm, 'sm')}
                                                                     <span className="text-sm font-medium">
                                                                         {pm.label}
                                                                     </span>
