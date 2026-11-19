@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { dataService } from '@/lib/dataService';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { AnimatePresence, motion } from 'framer-motion';
+import LiveNotificationSystem from '@/components/dashboard/LiveNotificationSystem';
 
 const adminMenuItems = [
     { icon: BarChart3, label: 'Tableau de bord', href: '/dashboard' },
@@ -292,6 +293,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {children}
                 </main>
             </div>
+
+            {/* Système de notifications live (popup + son iPhone) */}
+            <LiveNotificationSystem />
         </div>
     );
 }
