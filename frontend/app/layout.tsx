@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import KeepAlive from "@/components/utils/KeepAlive";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -48,7 +47,6 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} selection:bg-blue-500/20 selection:text-blue-200`}>
       <body className="bg-brand-bg font-sans text-slate-100 antialiased min-h-screen">
-        <KeepAlive />
         {/* Ambient atmospheric gradients */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
           <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-blue-600/10 via-indigo-600/5 to-transparent blur-[120px] rounded-full" />

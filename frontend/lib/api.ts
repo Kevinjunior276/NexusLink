@@ -30,9 +30,8 @@ const handleResponse = async (response: Response) => {
     if (response.status === 401) {
         if (typeof window !== 'undefined') {
             localStorage.removeItem('token');
-            window.location.href = '/login';
         }
-        throw new Error('Session expirée. Veuillez vous reconnecter.');
+        throw new Error('Session expirée ou non autorisée.');
     }
 
     if (!response.ok) {

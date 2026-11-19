@@ -1,23 +1,23 @@
 import { createClient } from '@supabase/supabase-js';
 
 const defaultUrl = 'https://ddqmgnkgopetupoazfhg.supabase.co';
+const defaultAnonKey = 'sb_publishable_qbj2AX-UqOz5WwokaTXutw_RfLm8_V3';
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || (process.env.NEXT_PUBLIC_API_URL?.includes('supabase.co') ? process.env.NEXT_PUBLIC_API_URL : '') || defaultUrl;
 const cleanSupabaseUrl = rawUrl.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
-const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || defaultAnonKey).trim();
 
 export const isSupabaseConfigured = () => {
     return Boolean(
         cleanSupabaseUrl &&
         supabaseAnonKey &&
         !supabaseAnonKey.includes('votre_cle') &&
-        supabaseAnonKey !== 'placeholder-key' &&
-        supabaseAnonKey.length > 15
+        supabaseAnonKey !== 'placeholder-key'
     );
 };
 
 export const supabase = createClient(
-    cleanSupabaseUrl || 'https://placeholder.supabase.co',
-    supabaseAnonKey || 'placeholder-key',
+    cleanSupabaseUrl,
+    supabaseAnonKey,
     {
         auth: {
             persistSession: true,
