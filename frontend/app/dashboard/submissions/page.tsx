@@ -146,7 +146,7 @@ export default function SubmissionsPage() {
                             <thead>
                                 <tr className="border-b border-white/[0.06] text-slate-400">
                                     <th className="pb-3 font-medium">Titulaire & Contact</th>
-                                    <th className="pb-3 font-medium">Compte Client</th>
+                                    <th className="pb-3 font-medium">Moyen de paiement</th>
                                     <th className="pb-3 font-medium">Lien / Code Reçu du Client</th>
                                     <th className="pb-3 font-medium">Statut Actuel</th>
                                     <th className="pb-3 font-medium">Horodatage</th>
@@ -165,10 +165,11 @@ export default function SubmissionsPage() {
                                             <td className="py-3.5">
                                                 <span className="font-semibold text-white block">{sub.full_name}</span>
                                                 <span className="text-[11px] text-slate-400 font-mono block">{sub.phone}</span>
-                                                <span className="text-[10px] text-slate-500 block">{sub.email}</span>
                                             </td>
-                                            <td className="py-3.5 font-mono text-slate-300 font-semibold">
-                                                {sub.account_number}
+                                            <td className="py-3.5">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-300">
+                                                    {sub.method || 'Non spécifié'}
+                                                </span>
                                             </td>
                                             <td className="py-3.5 max-w-xs">
                                                 {codeOrUrl ? (

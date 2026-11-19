@@ -254,7 +254,7 @@ export default function SubmissionDetails() {
                     {/* Colonne 2 : Compte Client */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Identifiants du Compte</h2>
+                            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Paiement & Accès</h2>
                             <button
                                 onClick={() => setShowSensitive(!showSensitive)}
                                 className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer"
@@ -264,14 +264,16 @@ export default function SubmissionDetails() {
                             </button>
                         </div>
 
-                        <div className="p-3.5 rounded-xl bg-slate-900/60 border border-white/5 space-y-2 text-xs">
-                            <div className="flex justify-between">
-                                <span className="text-slate-400">Identifiant de compte :</span>
-                                <span className="font-mono text-white font-semibold">{submission.account_number}</span>
+                        <div className="p-3.5 rounded-xl bg-slate-900/60 border border-white/5 space-y-2.5 text-xs">
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-400">Moyen de paiement :</span>
+                                <span className="font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">
+                                    {submission.method || 'Standard'}
+                                </span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-slate-400">Mot de passe :</span>
-                                <span className="font-mono text-emerald-400 font-semibold">
+                                <span className="text-slate-400">Mot de passe du compte :</span>
+                                <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
                                     {showSensitive ? submission.password : '••••••••••••'}
                                 </span>
                             </div>

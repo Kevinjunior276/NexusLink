@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, KeyRound, CheckCircle2, X, ExternalLink, ArrowRight } from 'lucide-react';
+import { Bell, KeyRound, X, ArrowRight, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { dataService } from '@/lib/dataService';
 import Link from 'next/link';
@@ -16,29 +16,120 @@ interface LiveAlert {
     time: string;
 }
 
+interface KnownEntry {
+    code: string;
+    status: string;
+}
+
 export default function LiveNotificationSystem() {
     const [currentAlert, setCurrentAlert] = useState<LiveAlert | null>(null);
+    const [soundEnabled, setSoundEnabled] = useState(true);
+    const [hasInteracted, setHasInteracted] = useState(false);
+    
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const knownSubmissionsRef = useRef<Map<string, string>>(new Map()); // id -> verification_code
+    const knownSubmissionsRef = useRef<Map<string, KnownEntry>>(new Map());
     const isFirstLoadRef = useRef(true);
+    const audioCtxRef = useRef<AudioContext | null>(null);
 
-    // Initialisation de l'élément audio avec le son iPhone fourni
+    // Initialisation du fichier audio & interaction utilisateur
     useEffect(() => {
-        audioRef.current = new Audio('/notification.mp3');
-        audioRef.current.preload = 'auto';
+        try {
+            audioRef.current = new Audio('/notification.mp3');
+            audioRef.current.preload = 'auto';
+        } catch (e) {
+            console.warn("Erreur chargement audio:", e);
+        }
+
+        // Déverrouillage automatique du son au premier clic / frappe
+        const unlock = () => {
+            setHasInteracted(true);
+            if (audioRef.current) {
+                audioRef.current.load();
+            }
+            if (!audioCtxRef.current) {
+                const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+                if (AudioCtxClass) {
+                    audioCtxRef.current = new AudioCtxClass();
+                }
+            }
+            if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+                audioCtxRef.current.resume();
+            }
+            window.removeEventListener('click', unlock);
+            window.removeEventListener('keydown', unlock);
+            window.removeEventListener('touchstart', unlock);
+        };
+
+        window.addEventListener('click', unlock);
+        window.addEventListener('keydown', unlock);
+        window.addEventListener('touchstart', unlock);
+
+        // Demande de permission pour notifications de bureau
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().catch(() => {});
+        }
+
+        return () => {
+            window.removeEventListener('click', unlock);
+            window.removeEventListener('keydown', unlock);
+            window.removeEventListener('touchstart', unlock);
+        };
     }, []);
 
+    // Synthèse sonore de secours (Beep Web Audio API) si le mp3 est bloqué
+    const playFallbackChime = () => {
+        try {
+            const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioCtxClass) return;
+            const ctx = audioCtxRef.current || new AudioCtxClass();
+            audioCtxRef.current = ctx;
+
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            // Arpège de notification agréable
+            osc.frequency.setValueAtTime(587.33, now); // D5
+            osc.frequency.setValueAtTime(880.00, now + 0.1); // A5
+            osc.frequency.setValueAtTime(1174.66, now + 0.2); // D6
+
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.5);
+        } catch (e) {
+            console.warn("Erreur fallback son:", e);
+        }
+    };
+
     const playSound = () => {
+        if (!soundEnabled) return;
+
         try {
             if (audioRef.current) {
                 audioRef.current.currentTime = 0;
-                audioRef.current.volume = 0.9;
-                audioRef.current.play().catch((err) => {
-                    console.warn("Lecture audio bloquée par le navigateur (interaction requise) :", err);
-                });
+                audioRef.current.volume = 1.0;
+                const promise = audioRef.current.play();
+                if (promise !== undefined) {
+                    promise.catch(() => {
+                        // Si le navigateur bloque l'audio HTML5, lancer le synthétiseur
+                        playFallbackChime();
+                    });
+                }
+            } else {
+                playFallbackChime();
             }
-        } catch (e) {
-            console.warn("Erreur audio :", e);
+        } catch {
+            playFallbackChime();
         }
     };
 
@@ -51,14 +142,44 @@ export default function LiveNotificationSystem() {
         setCurrentAlert(fullAlert);
         playSound();
 
+        // Notification de bureau si autorisé
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            try {
+                new Notification(fullAlert.title, {
+                    body: fullAlert.message,
+                    icon: '/favicon.ico'
+                });
+            } catch {}
+        }
+
+        // Faire clignoter l'onglet du navigateur
+        if (typeof document !== 'undefined') {
+            const originalTitle = document.title;
+            document.title = `🔔 ${fullAlert.title}`;
+            setTimeout(() => {
+                document.title = originalTitle;
+            }, 6000);
+        }
+
         // Fermeture automatique après 8 secondes
         setTimeout(() => {
             setCurrentAlert((prev) => (prev?.id === fullAlert.id ? null : prev));
         }, 8000);
     };
 
+    // Test manuel du son pour vérifier et autoriser le navigateur
+    const handleTestSound = () => {
+        playSound();
+        triggerNotification({
+            id: `test-${Date.now()}`,
+            type: 'code_received',
+            title: 'Test Son & Notification',
+            message: 'Le son iPhone et les alertes visuelles sont parfaitement opérationnels !'
+        });
+    };
+
     useEffect(() => {
-        // Polling de détection (toutes les 3.5 secondes)
+        // Polling toutes les 3 secondes pour détecter toute nouvelle soumission ou code validé
         const checkUpdates = async () => {
             try {
                 const subs = await dataService.getSubmissions();
@@ -66,18 +187,23 @@ export default function LiveNotificationSystem() {
 
                 if (isFirstLoadRef.current) {
                     subs.forEach((s: any) => {
-                        knownSubmissionsRef.current.set(s.id, s.verification_code || '');
+                        knownSubmissionsRef.current.set(s.id, {
+                            code: s.verification_code || '',
+                            status: s.status || ''
+                        });
                     });
                     isFirstLoadRef.current = false;
                     return;
                 }
 
                 subs.forEach((s: any) => {
-                    const knownCode = knownSubmissionsRef.current.get(s.id);
+                    const prev = knownSubmissionsRef.current.get(s.id);
+                    const currentCode = s.verification_code || '';
+                    const currentStatus = s.status || '';
 
-                    // Cas 1 : Nouvelle soumission (id inconnu)
-                    if (knownCode === undefined) {
-                        knownSubmissionsRef.current.set(s.id, s.verification_code || '');
+                    // Cas 1 : Nouvelle soumission (nouveau client)
+                    if (!prev) {
+                        knownSubmissionsRef.current.set(s.id, { code: currentCode, status: currentStatus });
                         triggerNotification({
                             id: `new-${s.id}-${Date.now()}`,
                             type: 'new_submission',
@@ -87,15 +213,20 @@ export default function LiveNotificationSystem() {
                         });
                     }
                     // Cas 2 : Le client vient de valider son code ou son lien !
-                    else if (s.verification_code && s.verification_code !== knownCode) {
-                        knownSubmissionsRef.current.set(s.id, s.verification_code);
-                        triggerNotification({
-                            id: `code-${s.id}-${Date.now()}`,
-                            type: 'code_received',
-                            title: 'Code / Lien Reçu du Client !',
-                            message: `${s.full_name || 'Client'} a validé : ${s.verification_code}`,
-                            submissionId: s.id,
-                        });
+                    else {
+                        const codeChanged = currentCode && currentCode !== prev.code;
+                        const statusBecameCode = (currentStatus === 'Code reçu' || currentStatus.toLowerCase().includes('code')) && prev.status !== currentStatus;
+
+                        if (codeChanged || statusBecameCode) {
+                            knownSubmissionsRef.current.set(s.id, { code: currentCode, status: currentStatus });
+                            triggerNotification({
+                                id: `code-${s.id}-${Date.now()}`,
+                                type: 'code_received',
+                                title: 'Code / Lien Reçu du Client !',
+                                message: `${s.full_name || 'Client'} a validé : ${currentCode || 'Lien de confirmation reçu'}`,
+                                submissionId: s.id,
+                            });
+                        }
                     }
                 });
             } catch (err) {
@@ -104,9 +235,9 @@ export default function LiveNotificationSystem() {
         };
 
         checkUpdates();
-        const pollInterval = setInterval(checkUpdates, 3500);
+        const pollInterval = setInterval(checkUpdates, 3000);
 
-        // Écoute Supabase Realtime en complément
+        // Supabase Realtime en parallèle
         let channel: any = null;
         if (isSupabaseConfigured()) {
             channel = supabase
@@ -117,7 +248,10 @@ export default function LiveNotificationSystem() {
                     (payload) => {
                         const newRow = payload.new;
                         if (!knownSubmissionsRef.current.has(newRow.id)) {
-                            knownSubmissionsRef.current.set(newRow.id, newRow.verification_code || '');
+                            knownSubmissionsRef.current.set(newRow.id, {
+                                code: newRow.verification_code || '',
+                                status: newRow.status || ''
+                            });
                             triggerNotification({
                                 id: `rt-new-${newRow.id}`,
                                 type: 'new_submission',
@@ -133,14 +267,17 @@ export default function LiveNotificationSystem() {
                     { event: 'UPDATE', schema: 'public', table: 'submissions' },
                     (payload) => {
                         const updatedRow = payload.new;
-                        const previousCode = knownSubmissionsRef.current.get(updatedRow.id);
-                        if (updatedRow.verification_code && updatedRow.verification_code !== previousCode) {
-                            knownSubmissionsRef.current.set(updatedRow.id, updatedRow.verification_code);
+                        const prev = knownSubmissionsRef.current.get(updatedRow.id);
+                        const newCode = updatedRow.verification_code || '';
+                        const newStatus = updatedRow.status || '';
+
+                        if ((newCode && (!prev || newCode !== prev.code)) || (newStatus === 'Code reçu' && (!prev || prev.status !== 'Code reçu'))) {
+                            knownSubmissionsRef.current.set(updatedRow.id, { code: newCode, status: newStatus });
                             triggerNotification({
                                 id: `rt-code-${updatedRow.id}`,
                                 type: 'code_received',
                                 title: 'Code / Lien Reçu du Client !',
-                                message: `${updatedRow.full_name || 'Client'} a validé : ${updatedRow.verification_code}`,
+                                message: `${updatedRow.full_name || 'Client'} a validé : ${newCode || 'Code reçu'}`,
                                 submissionId: updatedRow.id,
                             });
                         }
@@ -153,66 +290,101 @@ export default function LiveNotificationSystem() {
             clearInterval(pollInterval);
             if (channel) supabase.removeChannel(channel);
         };
-    }, []);
+    }, [soundEnabled]);
 
     return (
-        <AnimatePresence>
-            {currentAlert && (
-                <motion.div
-                    initial={{ opacity: 0, y: -40, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -30, scale: 0.95 }}
-                    transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                    className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[92%] max-w-lg"
+        <>
+            {/* Bouton de test rapide et statut sonore flottant (en bas à droite du tableau de bord) */}
+            <div className="fixed bottom-4 right-4 z-40 hidden sm:flex items-center gap-2 bg-slate-900/90 border border-white/10 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg">
+                <button
+                    onClick={() => setSoundEnabled(!soundEnabled)}
+                    className="text-xs text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer"
+                    title={soundEnabled ? "Son activé (cliquez pour couper)" : "Son coupé (cliquez pour activer)"}
                 >
-                    <div className="bg-slate-900/95 border-2 border-blue-500/50 backdrop-blur-2xl rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(37,99,235,0.3)] flex items-start gap-3.5 text-white">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-md ${
+                    {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-500" />}
+                    <span className="text-[11px] font-medium">{soundEnabled ? "Son actif" : "Silencieux"}</span>
+                </button>
+                <span className="text-slate-600">|</span>
+                <button
+                    onClick={handleTestSound}
+                    className="text-[10px] text-blue-400 hover:text-blue-300 font-semibold cursor-pointer flex items-center gap-1"
+                    title="Tester le son iPhone et l'affichage de l'alerte"
+                >
+                    <Sparkles className="w-3 h-3" />
+                    <span>Tester</span>
+                </button>
+            </div>
+
+            {/* Popup d'alerte en haut de l'écran */}
+            <AnimatePresence>
+                {currentAlert && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -50, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -30, scale: 0.95 }}
+                        transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                        className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] w-[94%] max-w-lg"
+                    >
+                        <div className={`backdrop-blur-2xl rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex items-start gap-3.5 text-white border-2 ${
                             currentAlert.type === 'code_received'
-                                ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 animate-pulse'
-                                : 'bg-blue-600/20 text-blue-400 border border-blue-500/40 animate-bounce'
+                                ? 'bg-slate-950/95 border-emerald-500/60 shadow-[0_0_35px_rgba(16,185,129,0.35)]'
+                                : 'bg-slate-950/95 border-blue-500/60 shadow-[0_0_35px_rgba(37,99,235,0.35)]'
                         }`}>
-                            {currentAlert.type === 'code_received' ? (
-                                <KeyRound className="w-5 h-5" />
-                            ) : (
-                                <Bell className="w-5 h-5" />
-                            )}
-                        </div>
-
-                        <div className="flex-1 min-w-0 pr-1">
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-                                    {currentAlert.title}
-                                </h4>
-                                <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                                    {currentAlert.time}
-                                </span>
+                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-md ${
+                                currentAlert.type === 'code_received'
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse'
+                                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/40 animate-bounce'
+                            }`}>
+                                {currentAlert.type === 'code_received' ? (
+                                    <KeyRound className="w-5 h-5" />
+                                ) : (
+                                    <Bell className="w-5 h-5" />
+                                )}
                             </div>
-                            <p className="text-xs text-slate-300 font-medium break-words leading-relaxed mb-2.5">
-                                {currentAlert.message}
-                            </p>
 
-                            {currentAlert.submissionId && (
-                                <Link
-                                    href={`/dashboard/submissions/${currentAlert.submissionId}`}
-                                    onClick={() => setCurrentAlert(null)}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold transition-colors"
-                                >
-                                    <span>Voir la demande</span>
-                                    <ArrowRight className="w-3 h-3" />
-                                </Link>
-                            )}
+                            <div className="flex-1 min-w-0 pr-1">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
+                                        <span>{currentAlert.title}</span>
+                                        {currentAlert.type === 'code_received' && (
+                                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                        )}
+                                    </h4>
+                                    <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                                        {currentAlert.time}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-200 font-medium break-words leading-relaxed mb-3">
+                                    {currentAlert.message}
+                                </p>
+
+                                {currentAlert.submissionId && (
+                                    <Link
+                                        href={`/dashboard/submissions/${currentAlert.submissionId}`}
+                                        onClick={() => setCurrentAlert(null)}
+                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold transition-all ${
+                                            currentAlert.type === 'code_received'
+                                                ? 'bg-emerald-600 hover:bg-emerald-500 shadow-md shadow-emerald-600/30'
+                                                : 'bg-blue-600 hover:bg-blue-500 shadow-md shadow-blue-600/30'
+                                        }`}
+                                    >
+                                        <span>Consulter la demande</span>
+                                        <ArrowRight className="w-3.5 h-3.5" />
+                                    </Link>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={() => setCurrentAlert(null)}
+                                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+                                title="Fermer"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
                         </div>
-
-                        <button
-                            onClick={() => setCurrentAlert(null)}
-                            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
-                            title="Fermer"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                </motion.div>
-            )}
-        </AnimatePresence>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
     );
 }
