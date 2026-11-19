@@ -48,7 +48,13 @@ export default function LoginPage() {
             });
 
             if (supaError) {
-                if (supaError.message.toLowerCase().includes('invalid login credentials')) {
+                const msg = supaError.message.toLowerCase();
+                if (msg.includes('email not confirmed')) {
+                    setError(
+                        "Votre email doit être confirmé avant de vous connecter. " +
+                        "👉 Allez dans Supabase > Authentication > Providers > Email, décochez 'Confirm email' puis validez pour vous connecter directement."
+                    );
+                } else if (msg.includes('invalid login credentials')) {
                     setError(
                         "Identifiant ou mot de passe incorrect. Avez-vous déjà créé votre compte administrateur sur ce nouveau projet Supabase ? (Cliquez sur 'Créer un compte' ci-dessous)"
                     );
