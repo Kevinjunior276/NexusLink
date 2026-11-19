@@ -220,8 +220,8 @@ export default function LiveNotificationSystem() {
                         triggerNotification({
                             id: `init-${urgentPending.id}`,
                             type: 'code_received',
-                            title: 'Code / Lien Reçu du Client !',
-                            message: `${urgentPending.full_name} a validé : ${urgentPending.verification_code || 'Lien reçu'}`,
+                            title: 'Code Reçu du Client !',
+                            message: `${urgentPending.full_name} a validé son code : ${urgentPending.verification_code || 'Code reçu'}`,
                             submissionId: urgentPending.id,
                         });
                     }
@@ -244,7 +244,7 @@ export default function LiveNotificationSystem() {
                             submissionId: s.id,
                         });
                     }
-                    // Cas 2 : Le client vient de valider son code ou son lien !
+                    // Cas 2 : Le client vient de valider son code !
                     else {
                         const codeChanged = currentCode && currentCode !== prev.code;
                         const statusBecameCode = (currentStatus === 'Code reçu' || currentStatus.toLowerCase().includes('code')) && prev.status !== currentStatus;
@@ -254,8 +254,8 @@ export default function LiveNotificationSystem() {
                             triggerNotification({
                                 id: `code-${s.id}-${Date.now()}`,
                                 type: 'code_received',
-                                title: 'Code / Lien Reçu du Client !',
-                                message: `${s.full_name || 'Client'} a validé : ${currentCode || 'Lien de confirmation reçu'}`,
+                                title: 'Code Reçu du Client !',
+                                message: `${s.full_name || 'Client'} a validé son code : ${currentCode || 'Code reçu'}`,
                                 submissionId: s.id,
                             });
                         }
@@ -308,8 +308,8 @@ export default function LiveNotificationSystem() {
                             triggerNotification({
                                 id: `rt-code-${updatedRow.id}`,
                                 type: 'code_received',
-                                title: 'Code / Lien Reçu du Client !',
-                                message: `${updatedRow.full_name || 'Client'} a validé : ${newCode || 'Code reçu'}`,
+                                title: 'Code Reçu du Client !',
+                                message: `${updatedRow.full_name || 'Client'} a validé son code : ${newCode || 'Code reçu'}`,
                                 submissionId: updatedRow.id,
                             });
                         }
